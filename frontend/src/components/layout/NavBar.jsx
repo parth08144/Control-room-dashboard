@@ -32,7 +32,7 @@ function Clock() {
   )
 }
 
-export default function NavBar() {
+export default function NavBar({ audioEnabled, toggleAudio }) {
   const connected     = usePlantStore(s => s.connected)
   const plantState    = usePlantStore(s => s.plantState)
   const activeView    = usePlantStore(s => s.activeView)
@@ -144,6 +144,22 @@ export default function NavBar() {
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {/* ── Audio Toggle ── */}
+      <button onClick={toggleAudio} style={{
+        background: audioEnabled ? 'rgba(0,255,136,0.1)' : 'rgba(255,23,68,0.1)',
+        border: `1px solid ${audioEnabled ? 'rgba(0,255,136,0.3)' : 'rgba(255,23,68,0.3)'}`,
+        borderRadius: 8, padding: '4px 10px',
+        color: audioEnabled ? '#00ff88' : '#ff1744',
+        fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700,
+        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+        boxShadow: audioEnabled ? '0 0 10px rgba(0,255,136,0.2)' : 'none',
+      }}>
+        <span>{audioEnabled ? '🔊' : '🔇'}</span>
+        {audioEnabled ? 'AUDIO ON' : 'ENABLE AUDIO'}
+      </button>
+
+      <div style={{ width: 1, height: 32, background: 'linear-gradient(180deg, transparent, rgba(0,200,255,0.25), transparent)', margin: '0 4px', flexShrink: 0 }} />
 
       {/* ── Live KPIs ── */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

@@ -46,8 +46,13 @@ function CtrlBtn({ label, onClick, variant = 'cyan', disabled = false }) {
   )
 }
 
-export default function ControlPanel() {
-  const sendControl = usePlantStore(s => s.sendControl)
+export default function ControlPanel({ playClick }) {
+  const sendControlStore = usePlantStore(s => s.sendControl)
+  
+  const sendControl = (payload) => {
+    if (playClick) playClick()
+    sendControlStore(payload)
+  }
   const plantState  = usePlantStore(s => s.plantState)
 
   const boiler    = plantState?.boiler    ?? {}

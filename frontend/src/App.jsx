@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react'
 import { useWebSocket } from './hooks/useWebSocket'
 import usePlantStore from './hooks/usePlantStore'
+import useAudioEngine from './hooks/useAudioEngine'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import NavBar from './components/layout/NavBar'
@@ -50,6 +51,8 @@ export default function App() {
   const Screen = SCREENS[activeView] || OverviewScreen
   const accent = VIEW_ACCENTS[activeView] || '#00e5ff'
 
+  const { audioEnabled, toggleAudio, playClick } = useAudioEngine()
+
   return (
     <div
       className="scanlines"
@@ -65,7 +68,7 @@ export default function App() {
         transition: 'background 0.8s ease',
       }} />
 
-      <NavBar />
+      <NavBar audioEnabled={audioEnabled} toggleAudio={toggleAudio} />
 
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
         <AnimatePresence mode="wait">
@@ -77,7 +80,7 @@ export default function App() {
             exit="exit"
             style={{ width: '100%', height: '100%', overflowY: 'auto' }}
           >
-            <Screen />
+            <Screen playClick={playClick} />
           </motion.div>
         </AnimatePresence>
       </div>
