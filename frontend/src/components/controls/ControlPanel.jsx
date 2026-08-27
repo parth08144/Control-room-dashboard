@@ -6,6 +6,13 @@ import usePlantStore from '../../hooks/usePlantStore'
 
 function SliderRow({ label, value, min, max, step = 1, unit, onCommit, disabled = false }) {
   const [local, setLocal] = useState(value)
+  const [isDragging, setIsDragging] = useState(false)
+
+  // Sync with backend when not dragging
+  React.useEffect(() => {
+    if (!isDragging) setLocal(value)
+  }, [value, isDragging])
+
   const pct = ((local - min) / (max - min) * 100).toFixed(1)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -19,9 +26,11 @@ function SliderRow({ label, value, min, max, step = 1, unit, onCommit, disabled 
       </div>
       <input type="range" min={min} max={max} step={step}
         value={local} disabled={disabled}
+        onMouseDown={() => setIsDragging(true)}
+        onTouchStart={() => setIsDragging(true)}
         onChange={e => { setLocal(Number(e.target.value)) }}
-        onMouseUp={() => onCommit(local)}
-        onTouchEnd={() => onCommit(local)}
+        onMouseUp={() => { setIsDragging(false); onCommit(local) }}
+        onTouchEnd={() => { setIsDragging(false); onCommit(local) }}
         style={{ '--pct': `${pct}%` }}
       />
     </div>
@@ -62,7 +71,10 @@ export default function ControlPanel({ playClick }) {
   const condenser = plantState?.condenser ?? {}
 
   // ── Boiler ─────────────────────────────────────────────────────────────────
-  const startBoiler = () => sendControl({ boiler_start: true, pump_a_start: true, pump_b_start: true })
+  const startBoiler = () => sendControl({ 
+    boiler_start: true, pump_a_start: true, pump_b_start: true,
+    fuel_demand: 25, pump_a_speed: 60, pump_b_speed: 60
+  })
   const stopBoiler  = () => sendControl({ boiler_stop: true })
   const resetBoiler = () => sendControl({ boiler_reset: true, turbine_reset: true, gen_reset: true })
 
