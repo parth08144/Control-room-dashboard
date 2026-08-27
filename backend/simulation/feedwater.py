@@ -16,6 +16,13 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
 
 def update(state: FeedwaterState, dt: float, controls: dict) -> FeedwaterState:
     s = state
+    
+    # ── Reset All Trips ───────────────────────────────────────────────────────
+    if controls.get("boiler_reset"):
+        s.pump_a_fault = False
+        s.pump_b_fault = False
+        controls.pop("fault_pump_a", None)
+        controls.pop("fault_pump_b", None)
 
     # ── Pump A ────────────────────────────────────────────────────────────────
     if controls.get("pump_a_start"):
