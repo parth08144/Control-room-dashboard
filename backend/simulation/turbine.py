@@ -22,11 +22,14 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict) 
     s = state
 
     # ── Reset ─────────────────────────────────────────────────────────────────
-    if controls.get("turbine_reset") and s.tripped:
-        s.tripped = False
-        s.trip_reason = ""
-        s.fault_vibration = False
-        s.fault_overspeed = False
+    if controls.get("turbine_reset"):
+        if s.tripped:
+            s.tripped = False
+            s.trip_reason = ""
+            s.fault_vibration = False
+            s.fault_overspeed = False
+        controls.pop("fault_vibration", None)
+        controls.pop("fault_overspeed", None)
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
     if controls.get("turbine_start") and not s.tripped and boiler.running and boiler.steam_pressure > 20.0:

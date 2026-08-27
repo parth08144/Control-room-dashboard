@@ -22,10 +22,10 @@ function PumpIcon({ x, y, r = 22, running, fault, speed, label, id, angleRef }) 
   const color = fault ? '#ef4444' : running ? '#10b981' : '#64748b'
 
   return (
-    <g filter="url(#drop-shadow)">
+    <g>
       {/* Heavy Pump Base Volute */}
       <circle cx={x} cy={y} r={r}
-        fill="url(#metal-base)"
+        fill="url(#metal-base)" filter="url(#drop-shadow)"
         stroke={fault ? '#ef4444' : 'url(#metal-chrome)'}
         strokeWidth={fault ? 2 : 2}
       />
@@ -53,7 +53,7 @@ function PumpIcon({ x, y, r = 22, running, fault, speed, label, id, angleRef }) 
       />
       
       {/* Readout Plate */}
-      <rect x={x - 22} y={y + r + 4} width={44} height={16} rx={2} fill="#020617" stroke="#475569" strokeWidth={1.5} />
+      <rect x={x - 22} y={y + r + 4} width={44} height={16} rx={2} fill="#020617" stroke="#475569" strokeWidth={1.5} filter="url(#drop-shadow)" />
       <text x={x} y={y + r + 15} textAnchor="middle"
         fontSize={9} fontFamily="'Share Tech Mono'" fontWeight="bold"
         fill={fault ? '#ef4444' : running ? '#10b981' : '#64748b'}
@@ -121,8 +121,8 @@ export default function FeedwaterSVG({ feedwater = {}, width = 200, height = 100
       />
 
       {/* Total flow label */}
-      <g filter="url(#drop-shadow)">
-        <rect x={width / 2 - 30} y={4} width={60} height={18} rx={3} fill="#020617" stroke="#475569" strokeWidth={1.5} />
+      <g>
+        <rect x={width / 2 - 30} y={4} width={60} height={18} rx={3} fill="#020617" stroke="#475569" strokeWidth={1.5} filter="url(#drop-shadow)" />
         <text x={width / 2} y={16} textAnchor="middle"
           fontSize={10} fontFamily="'Share Tech Mono'" fontWeight="bold"
           fill={flowNorm > 0 ? '#38bdf8' : '#64748b'}

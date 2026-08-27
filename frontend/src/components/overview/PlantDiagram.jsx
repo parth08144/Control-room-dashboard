@@ -238,11 +238,11 @@ export default function PlantDiagram() {
         />
 
         {/* ── GRID symbol ── */}
-        <g filter="url(#drop-shadow)">
+        <g>
           <rect x={GRID_X} y={GRID_Y} width={80} height={60}
             rx={4} fill="url(#metal-dark)"
             stroke={generator?.breaker_closed ? '#10b981' : '#475569'}
-            strokeWidth={2}
+            strokeWidth={2} filter="url(#drop-shadow)"
           />
           {/* Inner panel cutout */}
           <rect x={GRID_X + 6} y={GRID_Y + 6} width={68} height={48} rx={2}
@@ -307,10 +307,10 @@ export default function PlantDiagram() {
         </foreignObject>
 
         {/* ── CONDENSER box ── */}
-        <g filter="url(#drop-shadow)">
+        <g>
           <rect x={TURB_X} y={FW_Y} width={TW} height={50}
             rx={4} fill="url(#metal-base)"
-            stroke="#475569" strokeWidth={2}
+            stroke="#475569" strokeWidth={2} filter="url(#drop-shadow)"
           />
           {/* Cutout screen */}
           <rect x={TURB_X + 6} y={FW_Y + 20} width={TW - 12} height={24} rx={2} fill="#020617" filter="url(#inner-shadow)" />

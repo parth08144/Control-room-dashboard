@@ -182,7 +182,6 @@ export default function GeneratorSVG({ generator = {}, turbine = {}, width = 140
       <text x={cx} y={cy + height * 0.2} textAnchor="middle"
         fontSize={15} fontFamily="'Share Tech Mono'" fontWeight="bold"
         fill={isAlarm ? '#ff5252' : '#00e5ff'}
-        filter={breaker_closed ? `url(#gg-${id})` : undefined}
       >{mw_output.toFixed(1)}<tspan fontSize={9} fill="#7db8d4"> MW</tspan></text>
       <text x={cx} y={cy + height * 0.2 + 14} textAnchor="middle"
         fontSize={9} fontFamily="'Share Tech Mono'" fill="#3a6a85"

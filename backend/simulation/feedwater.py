@@ -21,6 +21,7 @@ def update(state: FeedwaterState, dt: float, controls: dict) -> FeedwaterState:
     if controls.get("pump_a_start"):
         s.pump_a_running = True
         s.pump_a_fault = False
+        controls.pop("fault_pump_a", None)
     if controls.get("pump_a_stop"):
         s.pump_a_running = False
     if controls.get("fault_pump_a"):
@@ -37,6 +38,7 @@ def update(state: FeedwaterState, dt: float, controls: dict) -> FeedwaterState:
     if controls.get("pump_b_start"):
         s.pump_b_running = True
         s.pump_b_fault = False
+        controls.pop("fault_pump_b", None)
     if controls.get("pump_b_stop"):
         s.pump_b_running = False
     if controls.get("fault_pump_b"):

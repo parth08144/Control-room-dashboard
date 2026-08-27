@@ -188,9 +188,9 @@ export default function BoilerSVG({ boiler = {}, width = 140, height = 200, onCl
       <text x={cx} y={bodyTop - 15} textAnchor="middle" fontSize={8} fontFamily="'Share Tech Mono'" fill="#94a3b8">DRUM</text>
 
       {/* ── Physical Analog Pressure Gauge ── */}
-      <g filter="url(#drop-shadow)" transform={`translate(${bodyX + bodyW + 16}, ${bodyTop + bodyH * 0.3})`}>
+      <g transform={`translate(${bodyX + bodyW + 16}, ${bodyTop + bodyH * 0.3})`}>
         {/* Gauge Body */}
-        <circle cx={0} cy={0} r={16} fill="url(#metal-chrome)" />
+        <circle cx={0} cy={0} r={16} fill="url(#metal-chrome)" filter="url(#drop-shadow)" />
         <circle cx={0} cy={0} r={13} fill="#020617" />
         {/* Ticks */}
         <line x1="-9" y1="9" x2="-7" y2="7" stroke="#cbd5e1" strokeWidth={1} />

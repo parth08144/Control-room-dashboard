@@ -113,8 +113,8 @@ export default function CoolingTowerSVG({ condenser = {}, width = 100, height = 
       />
 
       {/* Heat rejection readout */}
-      <g filter="url(#drop-shadow)">
-        <rect x={cx - 30} y={height - 18} width={60} height={18} rx={3} fill="#020617" stroke="#475569" strokeWidth={1.5} />
+      <g>
+        <rect x={cx - 30} y={height - 18} width={60} height={18} rx={3} fill="#020617" stroke="#475569" strokeWidth={1.5} filter="url(#drop-shadow)" />
         <text x={cx} y={height - 6} textAnchor="middle"
           fontSize={9} fontFamily="'Share Tech Mono'" fontWeight="bold"
           fill={intensity > 0.7 ? '#f59e0b' : '#38bdf8'}

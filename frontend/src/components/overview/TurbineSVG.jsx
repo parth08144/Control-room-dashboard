@@ -143,8 +143,8 @@ export default function TurbineSVG({ turbine = {}, width = 140, height = 180, on
       <line x1={cx + R + 14} y1={cy} x2={cx + R + 34} y2={cy} stroke="#ffffff" strokeOpacity={0.3} strokeWidth={2} />
 
       {/* Digital Readout Screen for RPM / VIB */}
-      <g filter="url(#drop-shadow)">
-        <rect x={cx - 45} y={cy + R + 18} width={90} height={32} rx={4} fill="#020617" stroke="#475569" strokeWidth={2} />
+      <g>
+        <rect x={cx - 45} y={cy + R + 18} width={90} height={32} rx={4} fill="#020617" stroke="#475569" strokeWidth={2} filter="url(#drop-shadow)" />
         <text x={cx} y={cy + R + 32} textAnchor="middle"
           fontSize={12} fontFamily="'Share Tech Mono'" fill={isAlarm ? '#ef4444' : '#10b981'} fontWeight="bold"
         >{rpm_actual.toFixed(0)} <tspan fontSize={8} fill="#64748b">RPM</tspan></text>

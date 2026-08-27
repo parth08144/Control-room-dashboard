@@ -31,9 +31,11 @@ def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict) ->
     s = state  # alias
 
     # ── Reset trip ────────────────────────────────────────────────────────────
-    if controls.get("boiler_reset") and s.tripped:
-        s.tripped = False
-        s.trip_reason = ""
+    if controls.get("boiler_reset"):
+        if s.tripped:
+            s.tripped = False
+            s.trip_reason = ""
+        controls.pop("fault_overtemp", None)
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
     if controls.get("boiler_start") and not s.tripped:
