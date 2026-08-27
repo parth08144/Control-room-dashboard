@@ -51,6 +51,8 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict) 
 
     # ── RPM actual (inertia) ─────────────────────────────────────────────────
     s.rpm_actual = _lag(s.rpm_actual, s.rpm_setpoint, tau=20.0, dt=dt)
+    if s.running and s.rpm_actual > 100:
+        s.rpm_actual += random.gauss(0, 0.5)
 
     # ── Steam flow consumed ───────────────────────────────────────────────────
     if s.running and s.rpm_actual > 100:
