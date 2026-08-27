@@ -21,7 +21,7 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
     return current + alpha * (target - current)
 
 
-def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict) -> BoilerState:
+def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict, add_soe=None) -> BoilerState:
     """
     Update boiler state by one simulation step of dt seconds.
     controls: dict with optional keys:
@@ -38,10 +38,12 @@ def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict) ->
         controls.pop("fault_overtemp", None)
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
-    if controls.get("boiler_start") and not s.tripped:
+    if controls.get("boiler_start") and not s.tripped and not s.running:
         s.running = True
-    if controls.get("boiler_stop"):
+        if add_soe: add_soe("COMMAND", "Boiler Start Command")
+    if controls.get("boiler_stop") and s.running:
         s.running = False
+        if add_soe: add_soe("COMMAND", "Boiler Stop Command")
 
     if s.tripped:
         s.running = False
@@ -95,12 +97,15 @@ def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict) ->
         if s.steam_pressure >= PRESSURE_MAX:
             s.tripped = True
             s.trip_reason = f"Overpressure: {s.steam_pressure:.1f} bar"
+            if add_soe: add_soe("TRIP", "BOILER TRIP", s.trip_reason)
         elif s.steam_temp >= TEMP_MAX:
             s.tripped = True
             s.trip_reason = f"Overtemperature: {s.steam_temp:.1f} °C"
+            if add_soe: add_soe("TRIP", "BOILER TRIP", s.trip_reason)
         elif s.drum_level <= DRUM_LEVEL_LOW_LOW:
             s.tripped = True
             s.trip_reason = f"Drum low-low level: {s.drum_level:.1f} %"
+            if add_soe: add_soe("TRIP", "BOILER TRIP", s.trip_reason)
 
     if s.tripped:
         s.firing_rate = _lag(s.firing_rate, 0.0, tau=3.0, dt=dt)

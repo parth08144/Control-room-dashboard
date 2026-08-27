@@ -79,10 +79,12 @@ class AlarmEngine:
                 )
                 self._active[tag] = entry
                 self._history.append(entry)
+                state.add_soe("ALARM", f"ALARM RAISED: {tag}", f"Severity: {defn['severity']} - {defn['description']}")
 
             elif not triggered and tag in self._active:
                 # Alarm cleared
                 self._active[tag].active = False
+                state.add_soe("ALARM", f"ALARM CLEARED: {tag}", f"{defn['description']}")
                 del self._active[tag]
 
         active_list = list(self._active.values())

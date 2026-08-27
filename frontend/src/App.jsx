@@ -14,6 +14,7 @@ import OverviewScreen from './components/overview/OverviewScreen'
 import AlarmPanel from './components/alarms/AlarmPanel'
 import TrendScreen from './components/trends/TrendScreen'
 import ControlPanel from './components/controls/ControlPanel'
+import SOEScreen from './components/alarms/SOEScreen'
 import BoilerDetail from './components/detail/BoilerDetail'
 import TurbineDetail from './components/detail/TurbineDetail'
 import GeneratorDetail from './components/detail/GeneratorDetail'
@@ -21,6 +22,7 @@ import GeneratorDetail from './components/detail/GeneratorDetail'
 const SCREENS = {
   overview:  OverviewScreen,
   alarms:    AlarmPanel,
+  soe:       SOEScreen,
   trends:    TrendScreen,
   controls:  ControlPanel,
   boiler:    BoilerDetail,
@@ -32,6 +34,7 @@ const SCREENS = {
 const VIEW_ACCENTS = {
   overview:  '#00e5ff',
   alarms:    '#ff1744',
+  soe:       '#b040ff',
   trends:    '#b040ff',
   controls:  '#ffb300',
   boiler:    '#ff6d00',

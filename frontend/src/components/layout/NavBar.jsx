@@ -8,6 +8,7 @@ import LED from '../ui/LED'
 const VIEWS = [
   { id: 'overview',   label: 'Overview',   icon: '⬡', color: '#00e5ff' },
   { id: 'alarms',     label: 'Alarms',     icon: '⚠',  color: '#ff1744' },
+  { id: 'soe',        label: 'SOE Log',    icon: '📜', color: '#b040ff' },
   { id: 'trends',     label: 'Trends',     icon: '📈', color: '#b040ff' },
   { id: 'controls',   label: 'Controls',   icon: '🎛', color: '#ffb300' },
 ]

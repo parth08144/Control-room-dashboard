@@ -91,6 +91,16 @@ class AlarmEntry:
 
 
 @dataclass
+class SOEEntry:
+    id: str = ""
+    timestamp: float = 0.0
+    time_str: str = ""
+    category: str = "SYSTEM"      # COMMAND / SYSTEM / TRIP / ALARM
+    message: str = ""
+    details: str = ""
+
+
+@dataclass
 class PlantState:
     tick: int = 0
     timestamp: float = 0.0
@@ -107,9 +117,28 @@ class PlantState:
     alarm_count_critical: int = 0
     alarm_count_warning: int = 0
     alarm_count_info: int = 0
+    
+    soe_log: List[SOEEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict())
+
+    def add_soe(self, category: str, message: str, details: str = ""):
+        from datetime import datetime, timezone
+        import uuid
+        now = datetime.now(timezone.utc)
+        entry = SOEEntry(
+            id=str(uuid.uuid4())[:8],
+            timestamp=now.timestamp(),
+            time_str=now.isoformat(),
+            category=category,
+            message=message,
+            details=details
+        )
+        self.soe_log.append(entry)
+        # Keep log size bounded
+        if len(self.soe_log) > 500:
+            self.soe_log = self.soe_log[-500:]

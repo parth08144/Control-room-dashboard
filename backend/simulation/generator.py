@@ -20,7 +20,7 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
     return current + alpha * (target - current)
 
 
-def update(state: GeneratorState, turbine: TurbineState, dt: float, controls: dict) -> GeneratorState:
+def update(state: GeneratorState, turbine: TurbineState, dt: float, controls: dict, add_soe=None) -> GeneratorState:
     s = state
 
     # ── Reset ─────────────────────────────────────────────────────────────────
@@ -46,10 +46,12 @@ def update(state: GeneratorState, turbine: TurbineState, dt: float, controls: di
         s.voltage = _lag(s.voltage, 0.0, tau=5.0, dt=dt)
 
     # ── Breaker & MW output ───────────────────────────────────────────────────
-    if controls.get("gen_breaker_close") and s.running and abs(s.frequency - 50.0) < 0.5:
+    if controls.get("gen_breaker_close") and s.running and abs(s.frequency - 50.0) < 0.5 and not s.breaker_closed:
         s.breaker_closed = True
-    if controls.get("gen_breaker_open") or s.tripped:
+        if add_soe: add_soe("COMMAND", "Generator Breaker Closed")
+    if (controls.get("gen_breaker_open") or s.tripped) and s.breaker_closed:
         s.breaker_closed = False
+        if add_soe: add_soe("COMMAND" if controls.get("gen_breaker_open") else "SYSTEM", "Generator Breaker Opened")
 
     if s.breaker_closed and s.running:
         mw_target = turbine.mechanical_power * 0.985  # generator efficiency
@@ -67,14 +69,21 @@ def update(state: GeneratorState, turbine: TurbineState, dt: float, controls: di
 
     # ── Trip logic ────────────────────────────────────────────────────────────
     if not s.tripped and s.running:
-        if s.frequency > 0 and s.frequency < FREQ_TRIP_LOW:
+        if turbine.tripped or not turbine.running:
+            s.tripped = True
+            s.trip_reason = "Turbine Trip Cascade"
+            if add_soe: add_soe("TRIP", "GENERATOR TRIP", s.trip_reason)
+        elif s.frequency > 0 and s.frequency < FREQ_TRIP_LOW:
             s.tripped = True
             s.trip_reason = f"Under-frequency: {s.frequency:.2f} Hz"
+            if add_soe: add_soe("TRIP", "GENERATOR TRIP", s.trip_reason)
         elif s.frequency > FREQ_TRIP_HIGH:
             s.tripped = True
             s.trip_reason = f"Over-frequency: {s.frequency:.2f} Hz"
+            if add_soe: add_soe("TRIP", "GENERATOR TRIP", s.trip_reason)
         elif s.stator_temp >= TEMP_TRIP:
             s.tripped = True
             s.trip_reason = f"Stator overtemp: {s.stator_temp:.1f} °C"
+            if add_soe: add_soe("TRIP", "GENERATOR TRIP", s.trip_reason)
 
     return s

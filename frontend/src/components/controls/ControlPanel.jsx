@@ -249,6 +249,7 @@ export default function ControlPanel({ playClick }) {
               { key: 'fault_overspeed',  label: '⚡ Turbine Overspeed' },
               { key: 'fault_pump_a',     label: '💧 FW Pump A Fault' },
               { key: 'fault_pump_b',     label: '💧 FW Pump B Fault' },
+              { key: 'fault_loss_of_feedwater', label: '🛑 Loss of All FW' },
             ].map(f => (
               <button key={f.key}
                 onClick={() => injectFault(f.key)}

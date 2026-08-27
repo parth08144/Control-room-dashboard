@@ -66,20 +66,20 @@ class SimulationEngine:
         self._tick_count += 1
 
         # ── 1. Feedwater (first — feeds drum level in boiler) ─────────────────
-        s.feedwater = feedwater.update(s.feedwater, TICK_INTERVAL, c)
+        s.feedwater = feedwater.update(s.feedwater, TICK_INTERVAL, c, s.add_soe)
 
         # ── 2. Boiler ─────────────────────────────────────────────────────────
         c["turbine_steam_demand"] = s.turbine.steam_flow_in
-        s.boiler = boiler.update(s.boiler, s.feedwater, TICK_INTERVAL, c)
+        s.boiler = boiler.update(s.boiler, s.feedwater, TICK_INTERVAL, c, s.add_soe)
 
         # ── 3. Turbine ────────────────────────────────────────────────────────
-        s.turbine = turbine.update(s.turbine, s.boiler, TICK_INTERVAL, c)
+        s.turbine = turbine.update(s.turbine, s.boiler, TICK_INTERVAL, c, s.add_soe)
 
         # ── 4. Generator ──────────────────────────────────────────────────────
-        s.generator = generator.update(s.generator, s.turbine, TICK_INTERVAL, c)
+        s.generator = generator.update(s.generator, s.turbine, TICK_INTERVAL, c, s.add_soe)
 
         # ── 5. Condenser ──────────────────────────────────────────────────────
-        s.condenser = condenser.update(s.condenser, s.turbine, s.generator, TICK_INTERVAL, c)
+        s.condenser = condenser.update(s.condenser, s.turbine, s.generator, TICK_INTERVAL, c, s.add_soe)
 
         # ── 6. Plant-level summary ────────────────────────────────────────────
         s.plant_running = s.boiler.running or s.turbine.running

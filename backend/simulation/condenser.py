@@ -16,7 +16,7 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
 
 
 def update(state: CondenserState, turbine: TurbineState, generator: GeneratorState,
-           dt: float, controls: dict) -> CondenserState:
+           dt: float, controls: dict, add_soe=None) -> CondenserState:
     s = state
 
     # ── Cooling tower fans ────────────────────────────────────────────────────

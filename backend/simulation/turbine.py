@@ -18,7 +18,7 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
     return current + alpha * (target - current)
 
 
-def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict) -> TurbineState:
+def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, add_soe=None) -> TurbineState:
     s = state
 
     # ── Reset ─────────────────────────────────────────────────────────────────
@@ -32,10 +32,12 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict) 
             s.trip_reason = ""
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
-    if controls.get("turbine_start") and not s.tripped and boiler.running and boiler.steam_pressure > 20.0:
+    if controls.get("turbine_start") and not s.tripped and boiler.running and boiler.steam_pressure > 20.0 and not s.running:
         s.running = True
-    if controls.get("turbine_stop"):
+        if add_soe: add_soe("COMMAND", "Turbine Start Command")
+    if controls.get("turbine_stop") and s.running:
         s.running = False
+        if add_soe: add_soe("COMMAND", "Turbine Stop Command")
 
     if s.tripped:
         s.running = False
@@ -88,15 +90,22 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict) 
 
     # ── Trip logic ────────────────────────────────────────────────────────────
     if not s.tripped and s.running:
-        if s.rpm_actual >= RPM_TRIP:
+        if boiler.tripped or not boiler.running:
+            s.tripped = True
+            s.trip_reason = "Boiler Trip Cascade"
+            if add_soe: add_soe("TRIP", "TURBINE TRIP", s.trip_reason)
+        elif s.rpm_actual >= RPM_TRIP:
             s.tripped = True
             s.trip_reason = f"Overspeed: {s.rpm_actual:.0f} rpm"
+            if add_soe: add_soe("TRIP", "TURBINE TRIP", s.trip_reason)
         elif s.vibration >= VIB_TRIP:
             s.tripped = True
             s.trip_reason = f"High vibration: {s.vibration:.2f} mm/s"
+            if add_soe: add_soe("TRIP", "TURBINE TRIP", s.trip_reason)
         elif s.bearing_temp >= BEARING_TEMP_TRIP:
             s.tripped = True
             s.trip_reason = f"Bearing overtemp: {s.bearing_temp:.1f} °C"
+            if add_soe: add_soe("TRIP", "TURBINE TRIP", s.trip_reason)
 
     if s.tripped:
         s.rpm_setpoint = 0.0
