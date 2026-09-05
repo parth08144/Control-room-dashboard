@@ -109,7 +109,7 @@ export default function ControlPanel({ playClick }) {
           <Section title="🔥 Boiler">
             <div style={{ display: 'flex', gap: 8 }}>
               <CtrlBtn label="START" onClick={startBoiler} variant="green"
-                disabled={boiler.running && !boiler.tripped} />
+                disabled={boiler.running || boiler.tripped} />
               <CtrlBtn label="STOP" onClick={stopBoiler} variant="red"
                 disabled={!boiler.running} />
               <CtrlBtn label="RESET" onClick={resetBoiler} variant="amber"
@@ -139,7 +139,7 @@ export default function ControlPanel({ playClick }) {
           <Section title="☢ Reactor">
             <div style={{ display: 'flex', gap: 8 }}>
               <CtrlBtn label="START" onClick={() => sendControl({ reactor_start: true, pump_a_start: true, pump_b_start: true, pump_a_speed: 60, pump_b_speed: 60, control_rods: 10 })} variant="green"
-                disabled={reactor.running && !reactor.tripped} />
+                disabled={reactor.running || reactor.tripped} />
               <CtrlBtn label="SCRAM" onClick={() => sendControl({ reactor_scram: true })} variant="red"
                 disabled={!reactor.running} />
               <CtrlBtn label="RESET" onClick={() => sendControl({ reactor_reset: true, turbine_reset: true, gen_reset: true })} variant="amber"
