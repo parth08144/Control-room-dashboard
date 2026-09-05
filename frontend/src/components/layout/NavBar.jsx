@@ -43,8 +43,9 @@ export default function NavBar({ audioEnabled, toggleAudio }) {
   const warnCount = plantState?.alarm_count_warning  ?? 0
   const mw        = plantState?.plant_power_mw       ?? 0
   const freq      = plantState?.generator?.frequency ?? 50
-  const pressure  = plantState?.boiler?.steam_pressure ?? 0
+  const pressure  = plantState?.sim_mode === 'nuclear' ? (plantState?.reactor?.steam_pressure ?? 0) : (plantState?.boiler?.steam_pressure ?? 0)
   const rpm       = plantState?.turbine?.rpm_actual ?? 0
+  const simMode   = plantState?.sim_mode ?? 'coal'
 
   return (
     <nav style={{
@@ -76,7 +77,7 @@ export default function NavBar({ audioEnabled, toggleAudio }) {
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>POWERSIM</div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: '0.12em' }}>
-            SCADA · UNIT-1 · 660 MW
+            SCADA · {simMode === 'nuclear' ? 'PWR REACTOR' : 'COAL FIRED'} · 660 MW
           </div>
         </div>
       </div>
@@ -128,7 +129,7 @@ export default function NavBar({ audioEnabled, toggleAudio }) {
       </div>
 
       {/* Detail breadcrumb */}
-      {['boiler','turbine','generator'].includes(activeView) && (
+      {['boiler','reactor','turbine','generator'].includes(activeView) && (
         <>
           <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>›</span>
           <button onClick={() => setActiveView('overview')}

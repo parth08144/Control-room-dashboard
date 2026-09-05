@@ -14,12 +14,53 @@ class BoilerState:
     firing_rate: float = 0.0        # % actual (lagged)
     steam_pressure: float = 0.0     # bar
     steam_temp: float = 20.0        # °C
+    superheater_temp: float = 20.0  # °C (new staging)
+    reheater_temp: float = 20.0     # °C (new staging)
     drum_level: float = 50.0        # % (0-100)
     steam_flow: float = 0.0         # t/h
     flue_gas_temp: float = 20.0     # °C
     running: bool = False
     tripped: bool = False
     trip_reason: str = ""
+
+@dataclass
+class ReactorState:
+    control_rods: float = 0.0       # % withdrawn (0-100)
+    neutron_flux: float = 0.0       # % nominal power
+    core_temp: float = 40.0         # °C
+    coolant_flow: float = 0.0       # % (primary loop)
+    pressure: float = 155.0         # bar (PWR primary)
+    steam_pressure: float = 0.0     # bar (secondary loop)
+    steam_temp: float = 20.0        # °C
+    steam_flow: float = 0.0         # t/h
+    running: bool = False
+    tripped: bool = False
+    trip_reason: str = ""
+
+@dataclass
+class DeaeratorState:
+    level: float = 60.0             # %
+    temperature: float = 130.0      # °C
+    pressure: float = 3.0           # bar
+    oxygen_level: float = 5.0       # ppb
+    extraction_steam_flow: float = 0.0 # t/h
+
+@dataclass
+class AirGasState:
+    fd_fan_speed: float = 0.0       # %
+    id_fan_speed: float = 0.0       # %
+    fd_fan_running: bool = False
+    id_fan_running: bool = False
+    furnace_pressure: float = -10.0 # mmH2O
+    air_preheater_temp_out: float = 30.0 # °C
+    emissions_opacity: float = 5.0  # %
+
+@dataclass
+class AuxPowerState:
+    main_bus_voltage: float = 6.6   # kV
+    internal_load_mw: float = 0.0   # MW
+    diesel_gen_running: bool = False
+    diesel_gen_kw: float = 0.0      # kW
 
 
 @dataclass
@@ -104,14 +145,19 @@ class SOEEntry:
 class PlantState:
     tick: int = 0
     timestamp: float = 0.0
+    sim_mode: str = "coal"          # "coal" or "nuclear"
     plant_running: bool = False
     plant_power_mw: float = 0.0
     
     boiler: BoilerState = field(default_factory=BoilerState)
+    reactor: ReactorState = field(default_factory=ReactorState)
     turbine: TurbineState = field(default_factory=TurbineState)
     generator: GeneratorState = field(default_factory=GeneratorState)
     feedwater: FeedwaterState = field(default_factory=FeedwaterState)
     condenser: CondenserState = field(default_factory=CondenserState)
+    deaerator: DeaeratorState = field(default_factory=DeaeratorState)
+    air_gas: AirGasState = field(default_factory=AirGasState)
+    aux_power: AuxPowerState = field(default_factory=AuxPowerState)
     
     active_alarms: List[AlarmEntry] = field(default_factory=list)
     alarm_count_critical: int = 0

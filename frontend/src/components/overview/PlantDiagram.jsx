@@ -6,6 +6,7 @@
  */
 import React from 'react'
 import BoilerSVG from './BoilerSVG'
+import ReactorSVG from './ReactorSVG'
 import TurbineSVG from './TurbineSVG'
 import GeneratorSVG from './GeneratorSVG'
 import CoolingTowerSVG from './CoolingTowerSVG'
@@ -45,8 +46,9 @@ export default function PlantDiagram() {
     )
   }
 
-  const { boiler, turbine, generator, condenser, feedwater } = state
-  const steamFlow = Math.min(1, (boiler?.steam_flow ?? 0) / 400)
+  const { boiler, reactor, turbine, generator, condenser, feedwater } = state
+  const simMode = state?.sim_mode ?? 'coal'
+  const steamFlow = simMode === 'nuclear' ? Math.min(1, (reactor?.steam_flow ?? 0) / 400) : Math.min(1, (boiler?.steam_flow ?? 0) / 400)
   const fwFlow    = Math.min(1, (feedwater?.feedwater_flow ?? 0) / 400)
   const condFlow  = Math.min(1, (condenser?.condensate_flow ?? 0) / 400)
   const cwFlow    = Math.min(1, (condenser?.cooling_water_flow ?? 0) / 8000)
@@ -193,14 +195,18 @@ export default function PlantDiagram() {
         />
 
         {/* ── Fuel line → boiler ── */}
-        <PipeSVG
-          x1={0} y1={BOILER_Y + BH * 0.8}
-          x2={BOILER_X} y2={BOILER_Y + BH * 0.8}
-          flowRate={Math.min(1, (boiler?.firing_rate ?? 0) / 100)}
-          media="fuel" strokeWidth={4}
-        />
-        <text x={10} y={BOILER_Y + BH * 0.8 - 8} fontSize={9} fontFamily="'Share Tech Mono'"
-          fill="rgba(255,110,0,0.6)" letterSpacing="0.05em">FUEL</text>
+        {simMode === 'coal' && (
+          <g>
+            <PipeSVG
+              x1={0} y1={BOILER_Y + BH * 0.8}
+              x2={BOILER_X} y2={BOILER_Y + BH * 0.8}
+              flowRate={Math.min(1, (boiler?.firing_rate ?? 0) / 100)}
+              media="fuel" strokeWidth={4}
+            />
+            <text x={10} y={BOILER_Y + BH * 0.8 - 8} fontSize={9} fontFamily="'Share Tech Mono'"
+              fill="rgba(255,110,0,0.6)" letterSpacing="0.05em">FUEL</text>
+          </g>
+        )}
 
         {/* ── Cooling water pipes ── */}
         <PipeSVG
@@ -269,12 +275,17 @@ export default function PlantDiagram() {
           >{generator?.mw_output.toFixed(1)} MW</text>
         </g>
 
-        {/* ── BOILER (clickable) ── */}
-        <g style={{ filter: boiler?.tripped ? 'drop-shadow(0 0 8px rgba(255,23,68,0.7))' : 'none' }}>
+        {/* ── BOILER / REACTOR (clickable) ── */}
+        <g style={{ filter: (simMode === 'nuclear' ? reactor : boiler)?.tripped ? 'drop-shadow(0 0 8px rgba(255,23,68,0.7))' : 'none' }}>
           <foreignObject x={BOILER_X} y={BOILER_Y} width={BW + 30} height={BH + 40}>
             <div xmlns="http://www.w3.org/1999/xhtml">
-              <BoilerSVG boiler={boiler} width={BW} height={BH}
-                onClick={() => setActiveView('boiler')} />
+              {simMode === 'nuclear' ? (
+                <ReactorSVG reactor={reactor} width={BW} height={BH}
+                  onClick={() => setActiveView('reactor')} />
+              ) : (
+                <BoilerSVG boiler={boiler} width={BW} height={BH}
+                  onClick={() => setActiveView('boiler')} />
+              )}
             </div>
           </foreignObject>
         </g>

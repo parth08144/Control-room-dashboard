@@ -15,14 +15,23 @@ def _make_check(tag, description, severity, check_fn):
 
 ALARM_DEFS = [
     # Boiler
-    _make_check("B-PT-001-HH", "Boiler Steam Pressure HIGH HIGH",  "CRITICAL", lambda s: s.boiler.steam_pressure > 170.0),
-    _make_check("B-PT-001-H",  "Boiler Steam Pressure HIGH",       "WARNING",  lambda s: s.boiler.steam_pressure > 155.0),
-    _make_check("B-TT-001-HH", "Steam Temperature HIGH HIGH",      "CRITICAL", lambda s: s.boiler.steam_temp > 545.0),
-    _make_check("B-TT-001-H",  "Steam Temperature HIGH",           "WARNING",  lambda s: s.boiler.steam_temp > 530.0),
-    _make_check("B-LT-001-LL", "Drum Level LOW LOW",               "CRITICAL", lambda s: s.boiler.drum_level < 15.0),
-    _make_check("B-LT-001-L",  "Drum Level LOW",                   "WARNING",  lambda s: s.boiler.drum_level < 25.0),
-    _make_check("B-LT-001-HH", "Drum Level HIGH HIGH",             "CRITICAL", lambda s: s.boiler.drum_level > 85.0),
-    _make_check("B-TRIP",      "Boiler TRIPPED",                   "CRITICAL", lambda s: s.boiler.tripped),
+    _make_check("B-PT-001-HH", "Boiler Steam Pressure HIGH HIGH",  "CRITICAL", lambda s: s.sim_mode == "coal" and s.boiler.steam_pressure > 170.0),
+    _make_check("B-PT-001-H",  "Boiler Steam Pressure HIGH",       "WARNING",  lambda s: s.sim_mode == "coal" and s.boiler.steam_pressure > 155.0),
+    _make_check("B-TT-001-HH", "Steam Temperature HIGH HIGH",      "CRITICAL", lambda s: s.sim_mode == "coal" and s.boiler.steam_temp > 545.0),
+    _make_check("B-TT-001-H",  "Steam Temperature HIGH",           "WARNING",  lambda s: s.sim_mode == "coal" and s.boiler.steam_temp > 530.0),
+    _make_check("B-LT-001-LL", "Drum Level LOW LOW",               "CRITICAL", lambda s: s.sim_mode == "coal" and s.boiler.drum_level < 15.0),
+    _make_check("B-LT-001-L",  "Drum Level LOW",                   "WARNING",  lambda s: s.sim_mode == "coal" and s.boiler.drum_level < 25.0),
+    _make_check("B-LT-001-HH", "Drum Level HIGH HIGH",             "CRITICAL", lambda s: s.sim_mode == "coal" and s.boiler.drum_level > 85.0),
+    _make_check("B-TRIP",      "Boiler TRIPPED",                   "CRITICAL", lambda s: s.sim_mode == "coal" and s.boiler.tripped),
+
+    # Reactor
+    _make_check("R-FLX-001-HH", "Reactor Neutron Flux HIGH HIGH", "CRITICAL", lambda s: s.sim_mode == "nuclear" and s.reactor.neutron_flux > 105.0),
+    _make_check("R-FLX-001-H",  "Reactor Neutron Flux HIGH",      "WARNING",  lambda s: s.sim_mode == "nuclear" and s.reactor.neutron_flux > 95.0),
+    _make_check("R-TT-001-HH",  "Core Temperature HIGH HIGH",     "CRITICAL", lambda s: s.sim_mode == "nuclear" and s.reactor.core_temp > 340.0),
+    _make_check("R-TT-001-H",   "Core Temperature HIGH",          "WARNING",  lambda s: s.sim_mode == "nuclear" and s.reactor.core_temp > 320.0),
+    _make_check("R-PT-001-HH",  "Steam Generator Press HIGH HIGH", "CRITICAL", lambda s: s.sim_mode == "nuclear" and s.reactor.steam_pressure > 170.0),
+    _make_check("R-PT-001-H",   "Steam Generator Press HIGH",     "WARNING",  lambda s: s.sim_mode == "nuclear" and s.reactor.steam_pressure > 155.0),
+    _make_check("R-TRIP",       "Reactor SCRAM (TRIPPED)",        "CRITICAL", lambda s: s.sim_mode == "nuclear" and s.reactor.tripped),
 
     # Turbine
     _make_check("T-ST-001-HH", "Turbine Overspeed TRIP",           "CRITICAL", lambda s: s.turbine.rpm_actual > 3250.0),
@@ -42,7 +51,7 @@ ALARM_DEFS = [
     _make_check("FW-PA-FAULT",  "Feedwater Pump A FAULT",          "WARNING",  lambda s: s.feedwater.pump_a_fault),
     _make_check("FW-PB-FAULT",  "Feedwater Pump B FAULT",          "WARNING",  lambda s: s.feedwater.pump_b_fault),
     _make_check("FW-FLOW-L",    "Feedwater Flow LOW",               "WARNING",
-                lambda s: s.feedwater.feedwater_flow < 100.0 and s.boiler.running),
+                lambda s: s.feedwater.feedwater_flow < 100.0 and ((s.sim_mode == "coal" and s.boiler.running) or (s.sim_mode == "nuclear" and s.reactor.running))),
 
     # Condenser
     _make_check("C-VAC-L",  "Condenser Vacuum LOW",                "WARNING",  lambda s: s.condenser.vacuum > -0.6 and s.turbine.running),

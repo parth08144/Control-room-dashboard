@@ -18,7 +18,7 @@ def _lag(current: float, target: float, tau: float, dt: float) -> float:
     return current + alpha * (target - current)
 
 
-def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, add_soe=None) -> TurbineState:
+def update(state: TurbineState, steam_source, dt: float, controls: dict, add_soe=None) -> TurbineState:
     s = state
 
     # ── Reset ─────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, 
             s.trip_reason = ""
 
     # ── Start / Stop ──────────────────────────────────────────────────────────
-    if controls.get("turbine_start") and not s.tripped and boiler.running and boiler.steam_pressure > 20.0 and not s.running:
+    if controls.get("turbine_start") and not s.tripped and steam_source.running and steam_source.steam_pressure > 20.0 and not s.running:
         s.running = True
         if add_soe: add_soe("COMMAND", "Turbine Start Command")
     if controls.get("turbine_stop") and s.running:
@@ -46,7 +46,7 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, 
     if s.running:
         # Target RPM from governor setpoint (default 3000), limited by steam availability
         gov_setpoint = float(controls.get("governor_setpoint", 100.0))  # % of rated
-        steam_factor = min(1.0, boiler.steam_pressure / 80.0)           # needs ≥80 bar
+        steam_factor = min(1.0, steam_source.steam_pressure / 80.0)           # needs ≥80 bar
         s.rpm_setpoint = gov_setpoint / 100.0 * RPM_RATED * steam_factor
     else:
         s.rpm_setpoint = 0.0
@@ -58,14 +58,14 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, 
 
     # ── Steam flow consumed ───────────────────────────────────────────────────
     if s.running and s.rpm_actual > 100:
-        s.steam_flow_in = (s.rpm_actual / RPM_RATED) * boiler.steam_flow * 0.9
+        s.steam_flow_in = (s.rpm_actual / RPM_RATED) * steam_source.steam_flow * 0.9
     else:
         s.steam_flow_in = 0.0
 
     # ── Mechanical power ──────────────────────────────────────────────────────
     # Power ∝ (rpm/rated)³ * steam_pressure factor
     rpm_pu = s.rpm_actual / RPM_RATED          # per-unit
-    pressure_factor = min(1.0, boiler.steam_pressure / 160.0)
+    pressure_factor = min(1.0, steam_source.steam_pressure / 160.0)
     s.mechanical_power = rpm_pu ** 1.5 * pressure_factor * 660.0  # MW at full load
 
     # ── Vibration ─────────────────────────────────────────────────────────────
@@ -90,9 +90,9 @@ def update(state: TurbineState, boiler: BoilerState, dt: float, controls: dict, 
 
     # ── Trip logic ────────────────────────────────────────────────────────────
     if not s.tripped and s.running:
-        if boiler.tripped or not boiler.running:
+        if steam_source.tripped or not steam_source.running:
             s.tripped = True
-            s.trip_reason = "Boiler Trip Cascade"
+            s.trip_reason = "Steam Source Trip Cascade"
             if add_soe: add_soe("TRIP", "TURBINE TRIP", s.trip_reason)
         elif s.rpm_actual >= RPM_TRIP:
             s.tripped = True

@@ -64,7 +64,9 @@ export default function ControlPanel({ playClick }) {
   }
   const plantState  = usePlantStore(s => s.plantState)
 
+  const simMode   = plantState?.sim_mode  ?? 'coal'
   const boiler    = plantState?.boiler    ?? {}
+  const reactor   = plantState?.reactor   ?? {}
   const turbine   = plantState?.turbine   ?? {}
   const generator = plantState?.generator ?? {}
   const feedwater = plantState?.feedwater ?? {}
@@ -102,42 +104,74 @@ export default function ControlPanel({ playClick }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
 
-        {/* ── Boiler Controls ── */}
-        <Section title="🔥 Boiler">
-          <div style={{ display: 'flex', gap: 8 }}>
-            <CtrlBtn label="START" onClick={startBoiler} variant="green"
-              disabled={boiler.running && !boiler.tripped} />
-            <CtrlBtn label="STOP" onClick={stopBoiler} variant="red"
-              disabled={!boiler.running} />
-            <CtrlBtn label="RESET" onClick={resetBoiler} variant="amber"
-              disabled={!boiler.tripped} />
-          </div>
-
-          <SliderRow
-            label="Fuel Demand" value={boiler.fuel_demand ?? 0}
-            min={0} max={100} unit="%"
-            disabled={!boiler.running}
-            onCommit={v => sendControl({ fuel_demand: v })}
-          />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: '#3a6a85', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Status
-            </span>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className={`badge ${boiler.running ? 'badge-green' : 'badge-grey'}`}>
-                {boiler.running ? 'RUNNING' : 'OFFLINE'}
-              </span>
-              {boiler.tripped && <span className="badge badge-red">TRIPPED: {boiler.trip_reason}</span>}
+        {/* ── Source Controls ── */}
+        {simMode === 'coal' ? (
+          <Section title="🔥 Boiler">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <CtrlBtn label="START" onClick={startBoiler} variant="green"
+                disabled={boiler.running && !boiler.tripped} />
+              <CtrlBtn label="STOP" onClick={stopBoiler} variant="red"
+                disabled={!boiler.running} />
+              <CtrlBtn label="RESET" onClick={resetBoiler} variant="amber"
+                disabled={!boiler.tripped} />
             </div>
-          </div>
-        </Section>
+
+            <SliderRow
+              label="Fuel Demand" value={boiler.fuel_demand ?? 0}
+              min={0} max={100} unit="%"
+              disabled={!boiler.running}
+              onCommit={v => sendControl({ fuel_demand: v })}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: '#3a6a85', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                Status
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span className={`badge ${boiler.running ? 'badge-green' : 'badge-grey'}`}>
+                  {boiler.running ? 'RUNNING' : 'OFFLINE'}
+                </span>
+                {boiler.tripped && <span className="badge badge-red">TRIPPED: {boiler.trip_reason}</span>}
+              </div>
+            </div>
+          </Section>
+        ) : (
+          <Section title="☢ Reactor">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <CtrlBtn label="START" onClick={() => sendControl({ reactor_start: true, pump_a_start: true, pump_b_start: true, pump_a_speed: 60, pump_b_speed: 60, control_rods: 10 })} variant="green"
+                disabled={reactor.running && !reactor.tripped} />
+              <CtrlBtn label="SCRAM" onClick={() => sendControl({ reactor_scram: true })} variant="red"
+                disabled={!reactor.running} />
+              <CtrlBtn label="RESET" onClick={() => sendControl({ reactor_reset: true, turbine_reset: true, gen_reset: true })} variant="amber"
+                disabled={!reactor.tripped} />
+            </div>
+
+            <SliderRow
+              label="Control Rods (Withdraw)" value={reactor.control_rods ?? 0}
+              min={0} max={100} unit="%"
+              disabled={!reactor.running}
+              onCommit={v => sendControl({ control_rods: v })}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: '#3a6a85', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                Status
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span className={`badge ${reactor.running ? 'badge-green' : 'badge-grey'}`}>
+                  {reactor.running ? 'RUNNING' : 'OFFLINE'}
+                </span>
+                {reactor.tripped && <span className="badge badge-red">TRIPPED: {reactor.trip_reason}</span>}
+              </div>
+            </div>
+          </Section>
+        )}
 
         {/* ── Turbine Controls ── */}
         <Section title="⚙ Turbine">
           <div style={{ display: 'flex', gap: 8 }}>
             <CtrlBtn label="START" onClick={startTurbine} variant="green"
-              disabled={turbine.running || !boiler.running || boiler.steam_pressure < 20} />
+              disabled={turbine.running || (simMode==='coal' ? (!boiler.running || boiler.steam_pressure < 20) : (!reactor.running || reactor.steam_pressure < 20))} />
             <CtrlBtn label="TRIP" onClick={stopTurbine} variant="red"
               disabled={!turbine.running} />
             <CtrlBtn label="RESET" onClick={resetTurbine} variant="amber"
@@ -243,8 +277,24 @@ export default function ControlPanel({ playClick }) {
             ⚠ Inject simulated faults for testing alarm response
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
+            {simMode === 'coal' && [
               { key: 'fault_overtemp',   label: '🔥 Boiler Overtemp' },
+            ].map(f => (
+              <button key={f.key}
+                onClick={() => injectFault(f.key)}
+                style={{
+                  background: 'rgba(200,50,0,0.1)',
+                  border: '1px solid rgba(255,80,0,0.35)',
+                  color: '#ff9800', fontFamily: 'var(--font-ui)',
+                  fontWeight: 600, fontSize: 11, letterSpacing: '0.04em',
+                  padding: '7px 10px', cursor: 'pointer', borderRadius: 5,
+                  textAlign: 'left', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.target.style.background = 'rgba(255,80,0,0.2)' }}
+                onMouseLeave={e => { e.target.style.background = 'rgba(200,50,0,0.1)' }}
+              >{f.label}</button>
+            ))}
+            {[
               { key: 'fault_vibration',  label: '〰 Turbine Vibration' },
               { key: 'fault_overspeed',  label: '⚡ Turbine Overspeed' },
               { key: 'fault_pump_a',     label: '💧 FW Pump A Fault' },
@@ -265,7 +315,7 @@ export default function ControlPanel({ playClick }) {
                 onMouseLeave={e => { e.target.style.background = 'rgba(200,50,0,0.1)' }}
               >{f.label}</button>
             ))}
-            <button onClick={resetBoiler}
+            <button onClick={() => simMode === 'coal' ? resetBoiler() : sendControl({ reactor_reset: true, turbine_reset: true, gen_reset: true })}
               style={{
                 background: 'rgba(0,180,220,0.1)',
                 border: '1px solid rgba(0,180,220,0.35)',
@@ -279,8 +329,38 @@ export default function ControlPanel({ playClick }) {
         </Section>
       </div>
 
-      {/* ── Cooling tower ── */}
-      <Section title="🌬 Cooling Tower">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {/* ── Simulation Mode ── */}
+        <Section title="🌐 Simulation Mode">
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => sendControl({ sim_mode: 'coal' })}
+              style={{
+                flex: 1, padding: '10px',
+                background: simMode === 'coal' ? 'rgba(0,255,136,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${simMode === 'coal' ? '#00ff88' : '#334155'}`,
+                color: simMode === 'coal' ? '#00ff88' : '#94a3b8',
+                borderRadius: 8, fontFamily: 'var(--font-ui)', fontWeight: 700,
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >COAL / GAS</button>
+            <button onClick={() => sendControl({ sim_mode: 'nuclear' })}
+              style={{
+                flex: 1, padding: '10px',
+                background: simMode === 'nuclear' ? 'rgba(0,255,170,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${simMode === 'nuclear' ? '#00ffaa' : '#334155'}`,
+                color: simMode === 'nuclear' ? '#00ffaa' : '#94a3b8',
+                borderRadius: 8, fontFamily: 'var(--font-ui)', fontWeight: 700,
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >NUCLEAR (PWR)</button>
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+            Warning: Switching modes will reset the plant dynamics.
+          </div>
+        </Section>
+
+        {/* ── Cooling tower ── */}
+        <Section title="🌬 Cooling Tower">
         <SliderRow
           label="Cooling Fans Active"
           value={condenser.cooling_tower_fans ?? 4}
@@ -299,6 +379,7 @@ export default function ControlPanel({ playClick }) {
           </span>
         </div>
       </Section>
+      </div>
     </div>
   )
 }

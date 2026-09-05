@@ -58,19 +58,28 @@ function KpiCard({ label, value, unit, subtext, color, bg, border, icon, alarm }
 }
 
 function StatusStrip({ state }) {
+  const simMode = state?.sim_mode ?? 'coal'
   const b = state?.boiler    ?? {}
+  const r = state?.reactor   ?? {}
   const t = state?.turbine   ?? {}
   const g = state?.generator ?? {}
   const f = state?.feedwater ?? {}
   const c = state?.condenser ?? {}
 
+  const sourceStatus = simMode === 'nuclear' ? {
+    name: 'REACTOR', icon: '☢',
+    status: r.tripped ? 'TRIPPED' : r.running ? 'RUNNING' : 'OFFLINE',
+    color: r.tripped ? '#ff1744' : r.running ? '#00ffaa' : '#3a6a85',
+    detail: `${(r.steam_pressure??0).toFixed(0)} bar · ${(r.neutron_flux??0).toFixed(0)}% flux`,
+  } : {
+    name: 'BOILER', icon: '🔥',
+    status: b.tripped ? 'TRIPPED' : b.running ? 'RUNNING' : 'OFFLINE',
+    color: b.tripped ? '#ff1744' : b.running ? '#00ff88' : '#3a6a85',
+    detail: `${(b.steam_pressure??0).toFixed(0)} bar · ${(b.firing_rate??0).toFixed(0)}% fire`,
+  }
+
   const systems = [
-    {
-      name: 'BOILER', icon: '🔥',
-      status: b.tripped ? 'TRIPPED' : b.running ? 'RUNNING' : 'OFFLINE',
-      color: b.tripped ? '#ff1744' : b.running ? '#00ff88' : '#3a6a85',
-      detail: `${(b.steam_pressure??0).toFixed(0)} bar · ${(b.firing_rate??0).toFixed(0)}% fire`,
-    },
+    sourceStatus,
     {
       name: 'TURBINE', icon: '⚙',
       status: t.tripped ? 'TRIPPED' : t.running ? 'RUNNING' : 'OFFLINE',
@@ -87,7 +96,7 @@ function StatusStrip({ state }) {
       name: 'FW PUMPS', icon: '💧',
       status: (f.pump_a_running||f.pump_b_running) ? 'RUNNING' : 'OFFLINE',
       color: (f.pump_a_fault||f.pump_b_fault) ? '#ff9800' : (f.pump_a_running||f.pump_b_running) ? '#00e5ff' : '#3a6a85',
-      detail: `${(f.feedwater_flow??0).toFixed(0)} t/h · ${(b.drum_level??50).toFixed(0)}% drum`,
+      detail: `${(f.feedwater_flow??0).toFixed(0)} t/h · ${simMode==='coal' ? (b.drum_level??50).toFixed(0)+'%' : '---'} drum`,
     },
     {
       name: 'CONDENSER', icon: '❄',
@@ -131,11 +140,16 @@ function StatusStrip({ state }) {
 
 export default function OverviewScreen() {
   const state = usePlantStore(s => s.plantState)
+  const simMode = state?.sim_mode ?? 'coal'
   const b = state?.boiler    ?? {}
+  const r = state?.reactor   ?? {}
   const t = state?.turbine   ?? {}
   const g = state?.generator ?? {}
   const c = state?.condenser ?? {}
   const f = state?.feedwater ?? {}
+  
+  const steam_pressure = simMode === 'nuclear' ? r.steam_pressure : b.steam_pressure
+  const drum_level = simMode === 'nuclear' ? 50 : b.drum_level
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -146,10 +160,10 @@ export default function OverviewScreen() {
           subtext={`${((g.mw_output??0)/660*100).toFixed(0)}% capacity`}
           color="#00ff88" bg="rgba(0,180,80,0.1)" border="rgba(0,255,136,0.3)" icon="⚡"
           alarm={(g.mw_output??0) > 700} />
-        <KpiCard label="Steam Pressure" value={(b.steam_pressure??0).toFixed(1)} unit="bar"
-          subtext={`${(b.steam_temp??0).toFixed(0)}°C steam temp`}
+        <KpiCard label={simMode === 'nuclear' ? "SG Pressure" : "Steam Pressure"} value={(steam_pressure??0).toFixed(1)} unit="bar"
+          subtext={simMode === 'nuclear' ? `${(r.core_temp??0).toFixed(0)}°C core` : `${(b.steam_temp??0).toFixed(0)}°C steam temp`}
           color="#00e5ff" bg="rgba(0,150,220,0.1)" border="rgba(0,229,255,0.3)" icon="🌡"
-          alarm={(b.steam_pressure??0) > 155} />
+          alarm={(steam_pressure??0) > 155} />
         <KpiCard label="Turbine Speed" value={(t.rpm_actual??0).toFixed(0)} unit="rpm"
           subtext={`VIB: ${(t.vibration??0).toFixed(2)} mm/s`}
           color="#b040ff" bg="rgba(140,20,220,0.1)" border="rgba(176,64,255,0.3)" icon="⚙"
@@ -158,10 +172,17 @@ export default function OverviewScreen() {
           subtext={`${(g.voltage??0).toFixed(2)} kV terminal`}
           color="#ffb300" bg="rgba(200,140,0,0.1)" border="rgba(255,179,0,0.3)" icon="📡"
           alarm={g.running && Math.abs((g.frequency??50)-50) > 0.5} />
-        <KpiCard label="Drum Level" value={(b.drum_level??50).toFixed(1)} unit="%"
-          subtext={`FW: ${(f.feedwater_flow??0).toFixed(0)} t/h`}
-          color="#00ffd5" bg="rgba(0,180,160,0.1)" border="rgba(0,255,213,0.3)" icon="💧"
-          alarm={(b.drum_level??50) < 25 || (b.drum_level??50) > 85} />
+        {simMode === 'coal' ? (
+          <KpiCard label="Drum Level" value={(drum_level??50).toFixed(1)} unit="%"
+            subtext={`FW: ${(f.feedwater_flow??0).toFixed(0)} t/h`}
+            color="#00ffd5" bg="rgba(0,180,160,0.1)" border="rgba(0,255,213,0.3)" icon="💧"
+            alarm={(drum_level??50) < 25 || (drum_level??50) > 85} />
+        ) : (
+          <KpiCard label="Neutron Flux" value={(r.neutron_flux??0).toFixed(1)} unit="%"
+            subtext={`Rods: ${(r.control_rods??0).toFixed(0)}%`}
+            color="#00ffaa" bg="rgba(0,255,170,0.1)" border="rgba(0,255,170,0.3)" icon="☢"
+            alarm={(r.neutron_flux??0) > 105} />
+        )}
         <KpiCard label="Heat Rejection" value={(c.heat_rejection??0).toFixed(0)} unit="MW"
           subtext={`Vac: ${(c.vacuum??0).toFixed(3)} bar`}
           color="#ff2d78" bg="rgba(200,0,80,0.1)" border="rgba(255,45,120,0.3)" icon="❄"

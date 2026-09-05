@@ -9,7 +9,7 @@ from collections import deque
 from typing import Callable, Awaitable, Optional, Dict, Any, Deque
 
 from .models import PlantState
-from . import boiler, turbine, generator, feedwater, condenser
+from . import boiler, turbine, generator, feedwater, condenser, reactor
 from .alarm_engine import AlarmEngine
 
 
@@ -65,15 +65,39 @@ class SimulationEngine:
         s.timestamp = time.time()
         self._tick_count += 1
 
+        # ── Handle Simulation Mode Switch ─────────────────────────────────────
+        new_mode = c.get("sim_mode", s.sim_mode)
+        if new_mode != s.sim_mode:
+            # When switching modes, we trip the plant and reset steam state for safety
+            s.sim_mode = new_mode
+            if s.sim_mode == "nuclear":
+                s.boiler.tripped = True
+                s.boiler.running = False
+                s.reactor.tripped = True
+                s.reactor.running = False
+            else:
+                s.reactor.tripped = True
+                s.reactor.running = False
+                s.boiler.tripped = True
+                s.boiler.running = False
+            s.add_soe("SYSTEM", f"Sim mode changed to {new_mode.upper()}")
+
         # ── 1. Feedwater (first — feeds drum level in boiler) ─────────────────
         s.feedwater = feedwater.update(s.feedwater, TICK_INTERVAL, c, s.add_soe)
 
-        # ── 2. Boiler ─────────────────────────────────────────────────────────
+        # ── 2. Steam Source (Boiler or Reactor) ───────────────────────────────
         c["turbine_steam_demand"] = s.turbine.steam_flow_in
-        s.boiler = boiler.update(s.boiler, s.feedwater, TICK_INTERVAL, c, s.add_soe)
+        if s.sim_mode == "coal":
+            s.boiler = boiler.update(s.boiler, s.feedwater, TICK_INTERVAL, c, s.add_soe)
+            steam_source = s.boiler
+            s.plant_running = s.boiler.running or s.turbine.running
+        else:
+            s.reactor = reactor.update(s.reactor, s.feedwater, TICK_INTERVAL, c, s.add_soe)
+            steam_source = s.reactor
+            s.plant_running = s.reactor.running or s.turbine.running
 
         # ── 3. Turbine ────────────────────────────────────────────────────────
-        s.turbine = turbine.update(s.turbine, s.boiler, TICK_INTERVAL, c, s.add_soe)
+        s.turbine = turbine.update(s.turbine, steam_source, TICK_INTERVAL, c, s.add_soe)
 
         # ── 4. Generator ──────────────────────────────────────────────────────
         s.generator = generator.update(s.generator, s.turbine, TICK_INTERVAL, c, s.add_soe)
@@ -82,7 +106,6 @@ class SimulationEngine:
         s.condenser = condenser.update(s.condenser, s.turbine, s.generator, TICK_INTERVAL, c, s.add_soe)
 
         # ── 6. Plant-level summary ────────────────────────────────────────────
-        s.plant_running = s.boiler.running or s.turbine.running
         s.plant_power_mw = s.generator.mw_output
 
         # ── 7. Alarm evaluation ───────────────────────────────────────────────
@@ -96,9 +119,9 @@ class SimulationEngine:
         self.history.append({
             "t": s.timestamp,
             "tick": s.tick,
-            "steam_pressure": s.boiler.steam_pressure,
-            "steam_temp": s.boiler.steam_temp,
-            "drum_level": s.boiler.drum_level,
+            "steam_pressure": steam_source.steam_pressure,
+            "steam_temp": steam_source.steam_temp,
+            "drum_level": s.boiler.drum_level if s.sim_mode == "coal" else 50.0,
             "rpm": s.turbine.rpm_actual,
             "vibration": s.turbine.vibration,
             "mw": s.generator.mw_output,
@@ -115,10 +138,12 @@ class SimulationEngine:
         # ── 10. Clear one-shot events ────────────────────────────────────────
         for event in [
             "boiler_start", "boiler_stop", "boiler_reset",
+            "reactor_start", "reactor_scram", "reactor_reset",
             "turbine_start", "turbine_stop", "turbine_reset",
             "gen_breaker_close", "gen_breaker_open", "gen_reset",
             "pump_a_start", "pump_a_stop",
-            "pump_b_start", "pump_b_stop"
+            "pump_b_start", "pump_b_stop",
+            "sim_mode"
         ]:
             self.controls.pop(event, None)
 
