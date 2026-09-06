@@ -19,6 +19,7 @@ import BoilerDetail from './components/detail/BoilerDetail'
 import ReactorDetail from './components/detail/ReactorDetail'
 import TurbineDetail from './components/detail/TurbineDetail'
 import GeneratorDetail from './components/detail/GeneratorDetail'
+import HydroDetail from './components/detail/HydroDetail'
 
 const SCREENS = {
   overview:  OverviewScreen,
@@ -30,6 +31,7 @@ const SCREENS = {
   reactor:   ReactorDetail,
   turbine:   TurbineDetail,
   generator: GeneratorDetail,
+  hydro:     HydroDetail,
 }
 
 // Per-view accent colours for transition glow
@@ -43,6 +45,7 @@ const VIEW_ACCENTS = {
   reactor:   '#00ffaa',
   turbine:   '#00e5ff',
   generator: '#00ff88',
+  hydro:     '#00e5ff',
 }
 
 const pageVariants = {

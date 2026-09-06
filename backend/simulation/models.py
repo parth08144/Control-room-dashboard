@@ -38,6 +38,22 @@ class ReactorState:
     trip_reason: str = ""
 
 @dataclass
+class HydroState:
+    gate_opening: float = 0.0       # % (0-100)
+    reservoir_level: float = 100.0  # m
+    inflow: float = 50.0            # % (0-100)
+    water_flow: float = 0.0         # m³/s
+    head_pressure: float = 50.0     # equivalent bar
+    level_trend: float = 0.0        # m/s
+    running: bool = False
+    tripped: bool = False
+    trip_reason: str = ""
+    # Aliases for turbine compatibility
+    steam_pressure: float = 0.0     # bar (mirrors head_pressure)
+    steam_temp: float = 15.0        # °C
+    steam_flow: float = 0.0         # equivalent t/h for turbine logic
+
+@dataclass
 class DeaeratorState:
     level: float = 60.0             # %
     temperature: float = 130.0      # °C
@@ -145,12 +161,13 @@ class SOEEntry:
 class PlantState:
     tick: int = 0
     timestamp: float = 0.0
-    sim_mode: str = "coal"          # "coal" or "nuclear"
+    sim_mode: str = "coal"          # "coal", "nuclear", or "hydro"
     plant_running: bool = False
     plant_power_mw: float = 0.0
     
     boiler: BoilerState = field(default_factory=BoilerState)
     reactor: ReactorState = field(default_factory=ReactorState)
+    hydro: HydroState = field(default_factory=HydroState)
     turbine: TurbineState = field(default_factory=TurbineState)
     generator: GeneratorState = field(default_factory=GeneratorState)
     feedwater: FeedwaterState = field(default_factory=FeedwaterState)

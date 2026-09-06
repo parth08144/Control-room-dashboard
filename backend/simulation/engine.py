@@ -9,7 +9,7 @@ from collections import deque
 from typing import Callable, Awaitable, Optional, Dict, Any, Deque
 
 from .models import PlantState
-from . import boiler, turbine, generator, feedwater, condenser, reactor
+from . import boiler, turbine, generator, feedwater, condenser, reactor, hydro
 from .alarm_engine import AlarmEngine
 
 
@@ -70,16 +70,12 @@ class SimulationEngine:
         if new_mode != s.sim_mode:
             # When switching modes, we trip the plant and reset steam state for safety
             s.sim_mode = new_mode
-            if s.sim_mode == "nuclear":
-                s.boiler.tripped = True
-                s.boiler.running = False
-                s.reactor.tripped = True
-                s.reactor.running = False
-            else:
-                s.reactor.tripped = True
-                s.reactor.running = False
-                s.boiler.tripped = True
-                s.boiler.running = False
+            s.boiler.tripped = True
+            s.boiler.running = False
+            s.reactor.tripped = True
+            s.reactor.running = False
+            s.hydro.tripped = True
+            s.hydro.running = False
             s.add_soe("SYSTEM", f"Sim mode changed to {new_mode.upper()}")
 
         # ── 1. Feedwater (first — feeds drum level in boiler) ─────────────────
@@ -91,10 +87,14 @@ class SimulationEngine:
             s.boiler = boiler.update(s.boiler, s.feedwater, TICK_INTERVAL, c, s.add_soe)
             steam_source = s.boiler
             s.plant_running = s.boiler.running or s.turbine.running
-        else:
+        elif s.sim_mode == "nuclear":
             s.reactor = reactor.update(s.reactor, s.feedwater, TICK_INTERVAL, c, s.add_soe)
             steam_source = s.reactor
             s.plant_running = s.reactor.running or s.turbine.running
+        else:
+            s.hydro = hydro.update(s.hydro, TICK_INTERVAL, c, s.add_soe)
+            steam_source = s.hydro
+            s.plant_running = s.hydro.running or s.turbine.running
 
         # ── 3. Turbine ────────────────────────────────────────────────────────
         s.turbine = turbine.update(s.turbine, steam_source, TICK_INTERVAL, c, s.add_soe)
@@ -139,6 +139,7 @@ class SimulationEngine:
         for event in [
             "boiler_start", "boiler_stop", "boiler_reset",
             "reactor_start", "reactor_scram", "reactor_reset",
+            "hydro_start", "hydro_stop", "hydro_reset",
             "turbine_start", "turbine_stop", "turbine_reset",
             "gen_breaker_close", "gen_breaker_open", "gen_reset",
             "pump_a_start", "pump_a_stop",

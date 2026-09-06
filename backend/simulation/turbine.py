@@ -65,7 +65,16 @@ def update(state: TurbineState, steam_source, dt: float, controls: dict, add_soe
     # ── Mechanical power ──────────────────────────────────────────────────────
     # Power ∝ (rpm/rated)³ * steam_pressure factor
     rpm_pu = s.rpm_actual / RPM_RATED          # per-unit
-    pressure_factor = min(1.0, steam_source.steam_pressure / 160.0)
+    
+    # Determine rated pressure dynamically based on steam source type
+    if hasattr(steam_source, 'core_temp'):
+        rated_pressure = 115.0  # Nuclear max normal pressure
+    elif hasattr(steam_source, 'reservoir_level'):
+        rated_pressure = 100.0  # Hydro max equivalent pressure
+    else:
+        rated_pressure = 140.0  # Coal full-load pressure (160 - 20 drop)
+        
+    pressure_factor = min(1.0, steam_source.steam_pressure / rated_pressure)
     s.mechanical_power = rpm_pu ** 1.5 * pressure_factor * 660.0  # MW at full load
 
     # ── Vibration ─────────────────────────────────────────────────────────────

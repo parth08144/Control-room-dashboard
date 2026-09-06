@@ -138,3 +138,7 @@ if os.path.exists(dist_dir):
 else:
     print(f"Warning: frontend dist not found at {dist_dir}. Please run 'npm run build' in frontend/")
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

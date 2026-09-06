@@ -67,6 +67,7 @@ export default function ControlPanel({ playClick }) {
   const simMode   = plantState?.sim_mode  ?? 'coal'
   const boiler    = plantState?.boiler    ?? {}
   const reactor   = plantState?.reactor   ?? {}
+  const hydro     = plantState?.hydro     ?? {}
   const turbine   = plantState?.turbine   ?? {}
   const generator = plantState?.generator ?? {}
   const feedwater = plantState?.feedwater ?? {}
@@ -135,7 +136,7 @@ export default function ControlPanel({ playClick }) {
               </div>
             </div>
           </Section>
-        ) : (
+        ) : simMode === 'nuclear' ? (
           <Section title="☢ Reactor">
             <div style={{ display: 'flex', gap: 8 }}>
               <CtrlBtn label="START" onClick={() => sendControl({ reactor_start: true, pump_a_start: true, pump_b_start: true, pump_a_speed: 60, pump_b_speed: 60, control_rods: 10 })} variant="green"
@@ -165,13 +166,49 @@ export default function ControlPanel({ playClick }) {
               </div>
             </div>
           </Section>
+        ) : (
+          <Section title="🌊 Reservoir & Dam">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <CtrlBtn label="START" onClick={() => sendControl({ hydro_start: true, gate_opening: 10 })} variant="green"
+                disabled={hydro.running || hydro.tripped} />
+              <CtrlBtn label="STOP" onClick={() => sendControl({ hydro_stop: true })} variant="red"
+                disabled={!hydro.running} />
+              <CtrlBtn label="RESET" onClick={() => sendControl({ hydro_reset: true, turbine_reset: true, gen_reset: true })} variant="amber"
+                disabled={!hydro.tripped} />
+            </div>
+
+            <SliderRow
+              label="Gate Opening" value={hydro.gate_opening ?? 0}
+              min={0} max={100} unit="%"
+              disabled={!hydro.running}
+              onCommit={v => sendControl({ gate_opening: v })}
+            />
+            
+            <SliderRow
+              label="Reservoir Inflow" value={hydro.inflow ?? 50}
+              min={0} max={100} unit="%"
+              onCommit={v => sendControl({ hydro_inflow: v })}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: '#3a6a85', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                Status
+              </span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span className={`badge ${hydro.running ? 'badge-green' : 'badge-grey'}`}>
+                  {hydro.running ? 'RUNNING' : 'OFFLINE'}
+                </span>
+                {hydro.tripped && <span className="badge badge-red">TRIPPED: {hydro.trip_reason}</span>}
+              </div>
+            </div>
+          </Section>
         )}
 
         {/* ── Turbine Controls ── */}
         <Section title="⚙ Turbine">
           <div style={{ display: 'flex', gap: 8 }}>
             <CtrlBtn label="START" onClick={startTurbine} variant="green"
-              disabled={turbine.running || (simMode==='coal' ? (!boiler.running || boiler.steam_pressure < 20) : (!reactor.running || reactor.steam_pressure < 20))} />
+              disabled={turbine.running || (simMode==='coal' ? (!boiler.running || boiler.steam_pressure < 20) : simMode==='hydro' ? (!hydro.running || hydro.head_pressure < 20) : (!reactor.running || reactor.steam_pressure < 20))} />
             <CtrlBtn label="TRIP" onClick={stopTurbine} variant="red"
               disabled={!turbine.running} />
             <CtrlBtn label="RESET" onClick={resetTurbine} variant="amber"
@@ -315,7 +352,7 @@ export default function ControlPanel({ playClick }) {
                 onMouseLeave={e => { e.target.style.background = 'rgba(200,50,0,0.1)' }}
               >{f.label}</button>
             ))}
-            <button onClick={() => simMode === 'coal' ? resetBoiler() : sendControl({ reactor_reset: true, turbine_reset: true, gen_reset: true })}
+            <button onClick={() => simMode === 'coal' ? resetBoiler() : simMode === 'hydro' ? sendControl({ hydro_reset: true, turbine_reset: true, gen_reset: true }) : sendControl({ reactor_reset: true, turbine_reset: true, gen_reset: true })}
               style={{
                 background: 'rgba(0,180,220,0.1)',
                 border: '1px solid rgba(0,180,220,0.35)',
@@ -352,7 +389,17 @@ export default function ControlPanel({ playClick }) {
                 borderRadius: 8, fontFamily: 'var(--font-ui)', fontWeight: 700,
                 cursor: 'pointer', transition: 'all 0.2s',
               }}
-            >NUCLEAR (PWR)</button>
+            >NUCLEAR</button>
+            <button onClick={() => sendControl({ sim_mode: 'hydro' })}
+              style={{
+                flex: 1, padding: '10px',
+                background: simMode === 'hydro' ? 'rgba(0,229,255,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${simMode === 'hydro' ? '#00e5ff' : '#334155'}`,
+                color: simMode === 'hydro' ? '#00e5ff' : '#94a3b8',
+                borderRadius: 8, fontFamily: 'var(--font-ui)', fontWeight: 700,
+                cursor: 'pointer', transition: 'all 0.2s',
+              }}
+            >HYDRO</button>
           </div>
           <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
             Warning: Switching modes will reset the plant dynamics.

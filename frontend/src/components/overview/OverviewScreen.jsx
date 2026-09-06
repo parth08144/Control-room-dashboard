@@ -61,6 +61,7 @@ function StatusStrip({ state }) {
   const simMode = state?.sim_mode ?? 'coal'
   const b = state?.boiler    ?? {}
   const r = state?.reactor   ?? {}
+  const h = state?.hydro     ?? {}
   const t = state?.turbine   ?? {}
   const g = state?.generator ?? {}
   const f = state?.feedwater ?? {}
@@ -71,6 +72,11 @@ function StatusStrip({ state }) {
     status: r.tripped ? 'TRIPPED' : r.running ? 'RUNNING' : 'OFFLINE',
     color: r.tripped ? '#ff1744' : r.running ? '#00ffaa' : '#3a6a85',
     detail: `${(r.steam_pressure??0).toFixed(0)} bar · ${(r.neutron_flux??0).toFixed(0)}% flux`,
+  } : simMode === 'hydro' ? {
+    name: 'RESERVOIR', icon: '🌊',
+    status: h.tripped ? 'TRIPPED' : h.running ? 'RUNNING' : 'OFFLINE',
+    color: h.tripped ? '#ff1744' : h.running ? '#00e5ff' : '#3a6a85',
+    detail: `${(h.head_pressure??0).toFixed(0)} bar · ${(h.reservoir_level??0).toFixed(0)}m ${ (h.level_trend??0) > 0.01 ? '▲' : (h.level_trend??0) < -0.01 ? '▼' : '' }`,
   } : {
     name: 'BOILER', icon: '🔥',
     status: b.tripped ? 'TRIPPED' : b.running ? 'RUNNING' : 'OFFLINE',
@@ -143,13 +149,14 @@ export default function OverviewScreen() {
   const simMode = state?.sim_mode ?? 'coal'
   const b = state?.boiler    ?? {}
   const r = state?.reactor   ?? {}
+  const h = state?.hydro     ?? {}
   const t = state?.turbine   ?? {}
   const g = state?.generator ?? {}
   const c = state?.condenser ?? {}
   const f = state?.feedwater ?? {}
   
-  const steam_pressure = simMode === 'nuclear' ? r.steam_pressure : b.steam_pressure
-  const drum_level = simMode === 'nuclear' ? 50 : b.drum_level
+  const steam_pressure = simMode === 'nuclear' ? r.steam_pressure : simMode === 'hydro' ? h.head_pressure : b.steam_pressure
+  const drum_level = simMode === 'nuclear' ? 50 : simMode === 'hydro' ? h.reservoir_level : b.drum_level
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -160,8 +167,8 @@ export default function OverviewScreen() {
           subtext={`${((g.mw_output??0)/660*100).toFixed(0)}% capacity`}
           color="#00ff88" bg="rgba(0,180,80,0.1)" border="rgba(0,255,136,0.3)" icon="⚡"
           alarm={(g.mw_output??0) > 700} />
-        <KpiCard label={simMode === 'nuclear' ? "SG Pressure" : "Steam Pressure"} value={(steam_pressure??0).toFixed(1)} unit="bar"
-          subtext={simMode === 'nuclear' ? `${(r.core_temp??0).toFixed(0)}°C core` : `${(b.steam_temp??0).toFixed(0)}°C steam temp`}
+        <KpiCard label={simMode === 'nuclear' ? "SG Pressure" : simMode === 'hydro' ? "Head Pressure" : "Steam Pressure"} value={(steam_pressure??0).toFixed(1)} unit="bar"
+          subtext={simMode === 'nuclear' ? `${(r.core_temp??0).toFixed(0)}°C core` : simMode === 'hydro' ? `${(h.water_flow??0).toFixed(0)}m³/s flow` : `${(b.steam_temp??0).toFixed(0)}°C steam temp`}
           color="#00e5ff" bg="rgba(0,150,220,0.1)" border="rgba(0,229,255,0.3)" icon="🌡"
           alarm={(steam_pressure??0) > 155} />
         <KpiCard label="Turbine Speed" value={(t.rpm_actual??0).toFixed(0)} unit="rpm"
@@ -177,6 +184,11 @@ export default function OverviewScreen() {
             subtext={`FW: ${(f.feedwater_flow??0).toFixed(0)} t/h`}
             color="#00ffd5" bg="rgba(0,180,160,0.1)" border="rgba(0,255,213,0.3)" icon="💧"
             alarm={(drum_level??50) < 25 || (drum_level??50) > 85} />
+        ) : simMode === 'hydro' ? (
+          <KpiCard label="Reservoir Lvl" value={(h.reservoir_level??100).toFixed(1)} unit="m"
+            subtext={`Gate: ${(h.gate_opening??0).toFixed(0)}%`}
+            color="#00ffd5" bg="rgba(0,180,160,0.1)" border="rgba(0,255,213,0.3)" icon="🌊"
+            alarm={(h.reservoir_level??100) < 10} />
         ) : (
           <KpiCard label="Neutron Flux" value={(r.neutron_flux??0).toFixed(1)} unit="%"
             subtext={`Rods: ${(r.control_rods??0).toFixed(0)}%`}

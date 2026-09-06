@@ -8,6 +8,7 @@ import React from 'react'
 import BoilerSVG from './BoilerSVG'
 import ReactorSVG from './ReactorSVG'
 import TurbineSVG from './TurbineSVG'
+import HydroSVG from './HydroSVG'
 import GeneratorSVG from './GeneratorSVG'
 import CoolingTowerSVG from './CoolingTowerSVG'
 import FeedwaterSVG from './FeedwaterSVG'
@@ -46,9 +47,9 @@ export default function PlantDiagram() {
     )
   }
 
-  const { boiler, reactor, turbine, generator, condenser, feedwater } = state
+  const { boiler, reactor, hydro, turbine, generator, condenser, feedwater } = state
   const simMode = state?.sim_mode ?? 'coal'
-  const steamFlow = simMode === 'nuclear' ? Math.min(1, (reactor?.steam_flow ?? 0) / 400) : Math.min(1, (boiler?.steam_flow ?? 0) / 400)
+  const steamFlow = simMode === 'nuclear' ? Math.min(1, (reactor?.steam_flow ?? 0) / 400) : simMode === 'hydro' ? Math.min(1, (hydro?.steam_flow ?? 0) / 1000) : Math.min(1, (boiler?.steam_flow ?? 0) / 400)
   const fwFlow    = Math.min(1, (feedwater?.feedwater_flow ?? 0) / 400)
   const condFlow  = Math.min(1, (condenser?.condensate_flow ?? 0) / 400)
   const cwFlow    = Math.min(1, (condenser?.cooling_water_flow ?? 0) / 8000)
@@ -174,25 +175,29 @@ export default function PlantDiagram() {
         />
 
         {/* ── Exhaust: Turbine → Condenser area ── */}
-        <PipeSVG
-          x1={exhaustPipe.x1} y1={exhaustPipe.y1}
-          x2={exhaustPipe.x2} y2={exhaustPipe.y2 - 10}
-          flowRate={condFlow} media="steam" strokeWidth={5}
-        />
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1 }}>
+          <PipeSVG
+            x1={exhaustPipe.x1} y1={exhaustPipe.y1}
+            x2={exhaustPipe.x2} y2={exhaustPipe.y2 - 10}
+            flowRate={condFlow} media="steam" strokeWidth={5}
+          />
+        </g>
 
         {/* ── Condensate return: condenser → FW pumps ── */}
-        <PipeSVG
-          x1={TURB_X + TW * 0.5} y1={FW_Y}
-          x2={FW_X + FW_W * 0.5} y2={FW_Y + FW_H * 0.5}
-          flowRate={condFlow} media="condensate" strokeWidth={4}
-        />
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1 }}>
+          <PipeSVG
+            x1={TURB_X + TW * 0.5} y1={FW_Y}
+            x2={FW_X + FW_W * 0.5} y2={FW_Y + FW_H * 0.5}
+            flowRate={condFlow} media="condensate" strokeWidth={4}
+          />
 
-        {/* ── Feedwater: pumps → boiler drum ── */}
-        <PipeSVG
-          x1={FW_X + FW_W * 0.5} y1={FW_Y + FW_H * 0.5}
-          x2={BOILER_X + BW * 0.3} y2={BOILER_Y + BH * 0.6}
-          flowRate={fwFlow} media="water" strokeWidth={5}
-        />
+          {/* ── Feedwater: pumps → boiler drum ── */}
+          <PipeSVG
+            x1={FW_X + FW_W * 0.5} y1={FW_Y + FW_H * 0.5}
+            x2={BOILER_X + BW * 0.3} y2={BOILER_Y + BH * 0.6}
+            flowRate={fwFlow} media="water" strokeWidth={5}
+          />
+        </g>
 
         {/* ── Fuel line → boiler ── */}
         {simMode === 'coal' && (
@@ -209,11 +214,13 @@ export default function PlantDiagram() {
         )}
 
         {/* ── Cooling water pipes ── */}
-        <PipeSVG
-          x1={COOL_X + COOL_W} y1={COOL_Y + COOL_H * 0.6}
-          x2={TURB_X + TW * 0.5 - 20} y2={FW_Y + 15}
-          flowRate={cwFlow} media="cooling" strokeWidth={4} reversed
-        />
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1 }}>
+          <PipeSVG
+            x1={COOL_X + COOL_W} y1={COOL_Y + COOL_H * 0.6}
+            x2={TURB_X + TW * 0.5 - 20} y2={FW_Y + 15}
+            flowRate={cwFlow} media="cooling" strokeWidth={4} reversed
+          />
+        </g>
 
         {/* ── Turbine → Generator shaft (dashed) ── */}
         <line
@@ -275,13 +282,16 @@ export default function PlantDiagram() {
           >{generator?.mw_output.toFixed(1)} MW</text>
         </g>
 
-        {/* ── BOILER / REACTOR (clickable) ── */}
-        <g style={{ filter: (simMode === 'nuclear' ? reactor : boiler)?.tripped ? 'drop-shadow(0 0 8px rgba(255,23,68,0.7))' : 'none' }}>
+        {/* ── BOILER / REACTOR / HYDRO (clickable) ── */}
+        <g style={{ filter: (simMode === 'nuclear' ? reactor : simMode === 'hydro' ? hydro : boiler)?.tripped ? 'drop-shadow(0 0 8px rgba(255,23,68,0.7))' : 'none' }}>
           <foreignObject x={BOILER_X} y={BOILER_Y} width={BW + 30} height={BH + 40}>
             <div xmlns="http://www.w3.org/1999/xhtml">
               {simMode === 'nuclear' ? (
                 <ReactorSVG reactor={reactor} width={BW} height={BH}
                   onClick={() => setActiveView('reactor')} />
+              ) : simMode === 'hydro' ? (
+                <HydroSVG hydro={hydro} width={BW} height={BH}
+                  onClick={() => setActiveView('hydro')} />
               ) : (
                 <BoilerSVG boiler={boiler} width={BW} height={BH}
                   onClick={() => setActiveView('boiler')} />
@@ -311,14 +321,16 @@ export default function PlantDiagram() {
         </g>
 
         {/* ── COOLING TOWER ── */}
-        <foreignObject x={COOL_X} y={COOL_Y} width={COOL_W + 20} height={COOL_H + 30}>
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            <CoolingTowerSVG condenser={condenser} width={COOL_W} height={COOL_H} />
-          </div>
-        </foreignObject>
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1, pointerEvents: simMode === 'hydro' ? 'none' : 'auto' }}>
+          <foreignObject x={COOL_X} y={COOL_Y} width={COOL_W + 20} height={COOL_H + 30}>
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              <CoolingTowerSVG condenser={condenser} width={COOL_W} height={COOL_H} />
+            </div>
+          </foreignObject>
+        </g>
 
         {/* ── CONDENSER box ── */}
-        <g>
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1, pointerEvents: simMode === 'hydro' ? 'none' : 'auto' }}>
           <rect x={TURB_X} y={FW_Y} width={TW} height={50}
             rx={4} fill="url(#metal-base)"
             stroke="#475569" strokeWidth={2} filter="url(#drop-shadow)"
@@ -342,11 +354,13 @@ export default function PlantDiagram() {
         </g>
 
         {/* ── FEEDWATER PUMPS ── */}
-        <foreignObject x={FW_X} y={FW_Y} width={FW_W} height={FW_H + 30}>
-          <div xmlns="http://www.w3.org/1999/xhtml">
-            <FeedwaterSVG feedwater={feedwater} width={FW_W} height={FW_H} />
-          </div>
-        </foreignObject>
+        <g style={{ opacity: simMode === 'hydro' ? 0.1 : 1, pointerEvents: simMode === 'hydro' ? 'none' : 'auto' }}>
+          <foreignObject x={FW_X} y={FW_Y} width={FW_W} height={FW_H + 30}>
+            <div xmlns="http://www.w3.org/1999/xhtml">
+              <FeedwaterSVG feedwater={feedwater} width={FW_W} height={FW_H} />
+            </div>
+          </foreignObject>
+        </g>
 
         {/* ── Alarm count badge ── */}
         {hasAlarm && (
