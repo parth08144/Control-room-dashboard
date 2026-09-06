@@ -2,6 +2,7 @@
  * OverviewScreen v2 — Plant diagram + colourful KPI strip + status panels.
  */
 import React from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import PlantDiagram from './PlantDiagram'
 import usePlantStore from '../../hooks/usePlantStore'
 
@@ -158,8 +159,60 @@ export default function OverviewScreen() {
   const steam_pressure = simMode === 'nuclear' ? r.steam_pressure : simMode === 'hydro' ? h.head_pressure : b.steam_pressure
   const drum_level = simMode === 'nuclear' ? 50 : simMode === 'hydro' ? h.reservoir_level : b.drum_level
 
+  const [showCelebration, setShowCelebration] = React.useState(false)
+  const [hasCelebrated, setHasCelebrated] = React.useState(false)
+
+  React.useEffect(() => {
+    const mw = g.mw_output ?? 0
+    if (mw >= 640 && !hasCelebrated) {
+      setShowCelebration(true)
+      setHasCelebrated(true)
+      const timer = setTimeout(() => setShowCelebration(false), 7000)
+      return () => clearTimeout(timer)
+    } else if (mw < 630) {
+      setHasCelebrated(false)
+    }
+  }, [g.mw_output, hasCelebrated])
+
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5, y: -50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
+            transition={{ type: 'spring', damping: 15, stiffness: 100 }}
+            style={{
+              position: 'absolute',
+              top: '20%',
+              left: '50%',
+              x: '-50%',
+              zIndex: 9999,
+              background: 'linear-gradient(135deg, rgba(0,255,136,0.9) 0%, rgba(0,200,255,0.9) 100%)',
+              padding: '30px 60px',
+              borderRadius: 24,
+              boxShadow: '0 20px 50px rgba(0,255,136,0.5), inset 0 0 0 2px rgba(255,255,255,0.5)',
+              backdropFilter: 'blur(20px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowCelebration(false)}
+          >
+            <div style={{ fontSize: 72, marginBottom: 15, animation: 'bounce 2s infinite' }}>🎉</div>
+            <h1 style={{ margin: 0, fontSize: 42, color: '#fff', textShadow: '0 2px 10px rgba(0,0,0,0.3)', letterSpacing: '0.05em' }}>
+              CONGRATULATIONS!
+            </h1>
+            <p style={{ margin: '15px 0 0', fontSize: 22, color: 'rgba(255,255,255,0.95)', fontWeight: 600, textShadow: '0 1px 5px rgba(0,0,0,0.2)' }}>
+              Plant is running at full capacity ({(g.mw_output??0).toFixed(1)} MW)
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Colourful KPI strip ── */}
       <div style={{ display: 'flex', gap: 8, padding: '10px 16px 6px', flexShrink: 0 }}>
