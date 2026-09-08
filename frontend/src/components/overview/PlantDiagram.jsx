@@ -289,7 +289,7 @@ export default function PlantDiagram() {
           ))}
           {/* Active Glow */}
           {running && <rect x={GEN.x} y={GEN.y} width={GEN.w} height={GEN.h} rx={40} fill="none" stroke="#38bdf8" strokeWidth={6} filter="url(#pipe-glow)" opacity={0.6} />}
-          <text x={GEN.x + GEN.w/2} y={GEN.y - 15} textAnchor="middle" fontSize={16} fontFamily="'Exo 2'" fill={running ? "#38bdf8" : "#94a3b8"} fontWeight="bold">Shaft Work Output</text>
+          <text x={GEN.x + GEN.w/2} y={GEN.y - 15} textAnchor="middle" fontSize={16} fontFamily="'Exo 2'" fill={running ? "#38bdf8" : "#94a3b8"} fontWeight="bold">Generator</text>
         </g>
 
         {/* CONDENSER */}
