@@ -3,6 +3,7 @@ import usePlantStore from '../../hooks/usePlantStore';
 
 export default function PlantDiagram() {
   const state = usePlantStore(s => s.plantState);
+  const setActiveView = usePlantStore(s => s.setActiveView);
 
   // SVG dimensions
   const W = 1300;
@@ -38,7 +39,11 @@ export default function PlantDiagram() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: '#020617' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%' }}>
+      <svg 
+        viewBox={`0 0 ${W} ${H}`} 
+        style={{ width: '100%', height: '100%', maxHeight: 'calc(100vh - 120px)' }}
+        preserveAspectRatio="xMidYMid meet"
+      >
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
@@ -147,7 +152,7 @@ export default function PlantDiagram() {
         <line x1={HPT.x} y1={SHAFT_Y} x2={GEN.x + GEN.w} y2={SHAFT_Y} stroke="#cbd5e1" strokeWidth={6} strokeDasharray={running ? "0" : "10 5"} filter="url(#drop-shadow)" />
 
         {/* BOILER */}
-        <g filter="url(#drop-shadow)">
+        <g filter="url(#drop-shadow)" style={{ cursor: 'pointer' }} onClick={() => setActiveView('boiler')}>
           <rect x={BOILER.x} y={BOILER.y} width={BOILER.w} height={BOILER.h} rx={16} fill="url(#metal-base)" stroke="#64748b" strokeWidth={3} />
           {/* Furnace Window */}
           <rect x={BOILER.x + 20} y={BOILER.y + 100} width={BOILER.w - 40} height={100} rx={8} fill="#020617" />
@@ -159,7 +164,7 @@ export default function PlantDiagram() {
         </g>
 
         {/* TURBINES */}
-        <g filter="url(#drop-shadow)">
+        <g filter="url(#drop-shadow)" style={{ cursor: 'pointer' }} onClick={() => setActiveView('turbine')}>
           {/* HP Turbine */}
           <polygon points={`${HPT.x},${HPT.y + HPT.h*0.2} ${HPT.x + HPT.w},${HPT.y} ${HPT.x + HPT.w},${HPT.y + HPT.h} ${HPT.x},${HPT.y + HPT.h*0.8}`} fill="url(#metal-base)" stroke="#94a3b8" strokeWidth={2} />
           <text x={HPT.x + HPT.w/2} y={HPT.y + HPT.h/2 + 5} textAnchor="middle" fontSize={14} fontFamily="'Exo 2'" fill="#e2e8f0" fontWeight="bold">HP</text>
@@ -180,7 +185,7 @@ export default function PlantDiagram() {
         </g>
 
         {/* GENERATOR */}
-        <g filter="url(#drop-shadow)">
+        <g filter="url(#drop-shadow)" style={{ cursor: 'pointer' }} onClick={() => setActiveView('generator')}>
           <rect x={GEN.x} y={GEN.y} width={GEN.w} height={GEN.h} rx={8} fill="url(#metal-base)" stroke="#38bdf8" strokeWidth={3} />
           <text x={GEN.x + GEN.w/2} y={GEN.y + GEN.h/2 + 5} textAnchor="middle" fontSize={14} fontFamily="'Exo 2'" fill="#38bdf8" fontWeight="bold">Shaft Work Output</text>
         </g>
