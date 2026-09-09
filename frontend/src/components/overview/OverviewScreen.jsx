@@ -26,7 +26,7 @@ function KpiCard({ label, value, unit, subtext, color, bg, border, icon, alarm }
       {/* Bottom accent bar */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-        background: alarm0
+        background: alarm
           ? 'linear-gradient(90deg, transparent, #ff1744, transparent)'
           : `linear-gradient(90deg, transparent, ${color}, transparent)`,
         boxShadow: `0 0 8px ${alarm ? '#ff1744' : color}`,
