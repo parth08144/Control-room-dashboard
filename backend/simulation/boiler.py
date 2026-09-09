@@ -8,9 +8,9 @@ from .models import BoilerState, FeedwaterState
 
 
 # ─── Limits ───────────────────────────────────────────────────────────────────
-PRESSURE_MAX = 180.0        # bar  — trip
-PRESSURE_RATED = 160.0      # bar  — normal full-load
-TEMP_MAX = 560.0            # °C  — trip
+PRESSURE_MAX = 320.0        # bar  — trip
+PRESSURE_RATED = 250.0      # bar  — normal full-load
+TEMP_MAX = 650.0            # °C  — trip
 DRUM_LEVEL_LOW_LOW = 10.0   # %   — trip
 DRUM_LEVEL_HIGH_HIGH = 90.0 # %   — trip
 
@@ -69,7 +69,7 @@ def update(state: BoilerState, fw: FeedwaterState, dt: float, controls: dict, ad
     s.steam_pressure = _lag(s.steam_pressure, pressure_target, tau=15.0, dt=dt)
 
     # Steam temperature
-    temp_target = 250.0 + heat_input * 290.0    # 250–540°C range
+    temp_target = 350.0 + heat_input * 250.0    # 350–600°C range
     s.steam_temp = _lag(s.steam_temp, temp_target, tau=10.0, dt=dt)
 
     # Flue gas temp

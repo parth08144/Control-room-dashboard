@@ -56,8 +56,9 @@ export default function PlantDiagram() {
   const HTR7 = { x: 60, y: 500, w: 60, h: 100 };
   const HTR8 = { x: 60, y: 380, w: 60, h: 100 };
 
-  const running = state?.turbine?.running || true;
-  const firing_rate = state?.boiler?.firing_rate ?? 80;
+  const boiler_running = state?.boiler?.running || false;
+  const running = state?.turbine?.running || boiler_running;
+  const firing_rate = state?.boiler?.firing_rate ?? (boiler_running ? 80 : 0);
 
   // Fluid colours
   const C_STEAM = { c: '#0ea5e9', d: '#bae6fd' };
@@ -79,6 +80,44 @@ export default function PlantDiagram() {
             @keyframes turbineSpin {
               from { transform: rotate(0deg); }
               to { transform: rotate(360deg); }
+            }
+            @keyframes bubbleRise {
+              0% { transform: translateY(0) scale(1); opacity: 0.8; }
+              100% { transform: translateY(-25px) scale(1.5); opacity: 0; }
+            }
+            @keyframes steamFall {
+              0% { transform: translateY(0) scale(1); opacity: 0.6; }
+              100% { transform: translateY(50px) scale(1.3); opacity: 0; }
+            }
+            @keyframes waterFlow {
+              from { stroke-dashoffset: 0; }
+              to { stroke-dashoffset: -24; }
+            }
+            @keyframes condenserPulse {
+              0%, 100% { opacity: 0.3; }
+              50% { opacity: 0.7; }
+            }
+            @keyframes steamWisp {
+              0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.7; }
+              50% { transform: translateY(-15px) translateX(5px) scale(1.4); opacity: 0.4; }
+              100% { transform: translateY(-30px) translateX(-3px) scale(1.8); opacity: 0; }
+            }
+            @keyframes pumpSpin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes deaeratorSpray {
+              0% { transform: translateY(0) scaleX(1); opacity: 0.7; }
+              50% { transform: translateY(8px) scaleX(1.3); opacity: 0.3; }
+              100% { transform: translateY(16px) scaleX(0.6); opacity: 0; }
+            }
+            @keyframes glowPulse {
+              0%, 100% { opacity: 0.3; filter: blur(3px); }
+              50% { opacity: 0.7; filter: blur(5px); }
+            }
+            @keyframes hotwell {
+              0%, 100% { d: path('M 692 500 Q 730 496 770 500 Q 810 504 850 500 Q 890 496 918 500'); }
+              50% { d: path('M 692 500 Q 730 504 770 500 Q 810 496 850 500 Q 890 504 918 500'); }
             }
           `}</style>
           
@@ -120,6 +159,18 @@ export default function PlantDiagram() {
             <stop offset="40%" stopColor="#facc15" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
+
+          <radialGradient id="condenser-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#00e5ff" stopOpacity="0.4" />
+            <stop offset="60%" stopColor="#0284c7" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+
+          <radialGradient id="deaerator-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.35" />
+            <stop offset="60%" stopColor="#0ea5e9" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
           
           <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="10" dy="15" stdDeviation="10" floodColor="#000" floodOpacity="0.8" />
@@ -128,6 +179,15 @@ export default function PlantDiagram() {
           <filter id="pipe-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="b" />
             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+
+          <filter id="active-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="b" />
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+
+          <filter id="steam-blur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" />
           </filter>
 
           <filter id="fire-warp">
@@ -195,6 +255,24 @@ export default function PlantDiagram() {
         
         {/* FPT Exhaust to Condenser */}
         <AnimatedPipe d={`M ${FPT.x + FPT.w/2} ${FPT.y + FPT.h} L ${FPT.x + FPT.w/2} 660 L ${COND.x} 660`} color={C_COND.c} dashColor={C_COND.d} width={6} speed={0.9} reverse />
+
+        {/* --- STEAM WISPS on main steam pipes --- */}
+        {running && (
+          <g>
+            {/* Steam wisps on main steam line (Boiler to HPT) */}
+            {[0,1,2].map(i => (
+              <ellipse key={`sw1-${i}`} cx={180 + i*30} cy={75} rx={8} ry={4} fill="#bae6fd" filter="url(#steam-blur)" style={{ animation: `steamWisp ${1.2 + i*0.3}s ease-in-out infinite ${i*0.4}s`, opacity: 0 }} />
+            ))}
+            {/* Steam wisps on reheat line */}
+            {[0,1].map(i => (
+              <ellipse key={`sw2-${i}`} cx={350 + i*40} cy={235} rx={7} ry={3} fill="#fca5a5" filter="url(#steam-blur)" style={{ animation: `steamWisp ${1.4 + i*0.2}s ease-in-out infinite ${i*0.5}s`, opacity: 0 }} />
+            ))}
+            {/* Steam wisps at LP exhaust into condenser */}
+            {[0,1,2,3].map(i => (
+              <ellipse key={`sw3-${i}`} cx={655 + i*50} cy={COND.y - 15} rx={10} ry={5} fill="#94a3b8" filter="url(#steam-blur)" style={{ animation: `steamWisp ${0.8 + i*0.2}s ease-in-out infinite ${i*0.3}s`, opacity: 0 }} />
+            ))}
+          </g>
+        )}
 
         {/* --- EQUIPMENT --- */}
 
@@ -294,20 +372,57 @@ export default function PlantDiagram() {
 
         {/* CONDENSER */}
         <g filter="url(#drop-shadow)">
+          {/* Active glow rim when running */}
+          {running && <rect x={COND.x - 4} y={COND.y - 4} width={COND.w + 8} height={COND.h + 8} rx={COND.h/2 + 4} fill="none" stroke="#00e5ff" strokeWidth={2} filter="url(#active-glow)" style={{ animation: 'condenserPulse 2s ease-in-out infinite' }} />}
+
           {/* Main Vessel */}
-          <rect x={COND.x} y={COND.y} width={COND.w} height={COND.h} rx={COND.h/2} fill="url(#h-cylinder)" stroke="#020617" strokeWidth={4} />
+          <rect x={COND.x} y={COND.y} width={COND.w} height={COND.h} rx={COND.h/2} fill="url(#h-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={4} />
           {/* Water box end caps */}
-          <ellipse cx={COND.x} cy={COND.y+COND.h/2} rx={15} ry={COND.h/2} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
-          <ellipse cx={COND.x+COND.w} cy={COND.y+COND.h/2} rx={15} ry={COND.h/2} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
+          <ellipse cx={COND.x} cy={COND.y+COND.h/2} rx={15} ry={COND.h/2} fill="url(#v-cylinder)" stroke={running ? '#0284c7' : '#020617'} strokeWidth={3} />
+          <ellipse cx={COND.x+COND.w} cy={COND.y+COND.h/2} rx={15} ry={COND.h/2} fill="url(#v-cylinder)" stroke={running ? '#0284c7' : '#020617'} strokeWidth={3} />
           
           {/* Cutaway revealing cooling tubes */}
           <rect x={COND.x + 40} y={COND.y + 20} width={COND.w - 80} height={COND.h - 60} rx={10} fill="#020617" stroke="#1e293b" strokeWidth={4} />
           <rect x={COND.x + 40} y={COND.y + 20} width={COND.w - 80} height={COND.h - 60} rx={10} fill="url(#heatex-tubes)" />
           
-          {/* Hotwell Level */}
-          <path d={`M ${COND.x + 42} ${COND.y + COND.h - 40} L ${COND.x + COND.w - 42} ${COND.y + COND.h - 40} A 10 10 0 0 1 ${COND.x + COND.w - 42} ${COND.y + COND.h - 22} L ${COND.x + 42} ${COND.y + COND.h - 22} A 10 10 0 0 1 ${COND.x + 42} ${COND.y + COND.h - 40}`} fill="rgba(56, 189, 248, 0.5)" />
+          {/* Cooling water flow through tubes - animated */}
+          {running && (
+            <g>
+              {[0,1,2,3,4].map(i => (
+                <line key={`cw-${i}`} x1={COND.x + 50} y1={COND.y + 30 + i*14} x2={COND.x + COND.w - 50} y2={COND.y + 30 + i*14} stroke="#38bdf8" strokeWidth={2} strokeLinecap="round" strokeDasharray="8 6" style={{ animation: `waterFlow ${0.6 + i*0.1}s linear infinite` }} opacity={0.6} />
+              ))}
+            </g>
+          )}
           
-          <text x={COND.x + COND.w/2} y={COND.y - 15} textAnchor="middle" fontSize={16} fontFamily="'Exo 2'" fill="#bae6fd" fontWeight="bold">Condenser</text>
+          {/* Steam falling / condensation animation - more particles, more visible */}
+          <g style={{ display: running ? 'block' : 'none' }}>
+            {[1,2,3,4,5,6,7,8,9].map(i => (
+              <path key={`steam-${i}`} d={`M ${COND.x + 45 + i*18} ${COND.y + 22} L ${COND.x + 45 + i*18} ${COND.y + 55}`} stroke="#bae6fd" strokeWidth="3" strokeLinecap="round" strokeDasharray="4 4" style={{ animation: `steamFall ${0.6 + (i%3)*0.15}s infinite linear ${(i%5)*0.15}s`, opacity: 0 }} />
+            ))}
+            {/* Steam cloud at entry points */}
+            {[0,1,2,3].map(i => (
+              <ellipse key={`sc-${i}`} cx={COND.x + 80 + i*45} cy={COND.y + 10} rx={12 + i*2} ry={6} fill="#bae6fd" filter="url(#steam-blur)" style={{ animation: `steamWisp ${1.2 + i*0.3}s ease-in-out infinite ${i*0.4}s`, opacity: 0 }} />
+            ))}
+          </g>
+          
+          {/* Hotwell Level with wave animation */}
+          <path d={`M ${COND.x + 42} ${COND.y + COND.h - 40} L ${COND.x + COND.w - 42} ${COND.y + COND.h - 40} A 10 10 0 0 1 ${COND.x + COND.w - 42} ${COND.y + COND.h - 22} L ${COND.x + 42} ${COND.y + COND.h - 22} A 10 10 0 0 1 ${COND.x + 42} ${COND.y + COND.h - 40}`} fill="rgba(56, 189, 248, 0.5)" />
+          {/* Hotwell water surface wave when active */}
+          {running && (
+            <path d={`M ${COND.x + 42} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 - 40} ${COND.y + COND.h - 44} ${COND.x + COND.w/2} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 + 40} ${COND.y + COND.h - 36} ${COND.x + COND.w - 42} ${COND.y + COND.h - 40}`} fill="none" stroke="#7dd3fc" strokeWidth={1.5} opacity={0.7}>
+              <animate attributeName="d" values={`M ${COND.x + 42} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 - 40} ${COND.y + COND.h - 44} ${COND.x + COND.w/2} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 + 40} ${COND.y + COND.h - 36} ${COND.x + COND.w - 42} ${COND.y + COND.h - 40};M ${COND.x + 42} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 - 40} ${COND.y + COND.h - 36} ${COND.x + COND.w/2} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 + 40} ${COND.y + COND.h - 44} ${COND.x + COND.w - 42} ${COND.y + COND.h - 40};M ${COND.x + 42} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 - 40} ${COND.y + COND.h - 44} ${COND.x + COND.w/2} ${COND.y + COND.h - 40} Q ${COND.x + COND.w/2 + 40} ${COND.y + COND.h - 36} ${COND.x + COND.w - 42} ${COND.y + COND.h - 40}`} dur="2s" repeatCount="indefinite" />
+            </path>
+          )}
+
+          {/* Vacuum readout */}
+          {running && (
+            <g>
+              <rect x={COND.x + COND.w/2 - 35} y={COND.y + COND.h/2 - 8} width={70} height={16} rx={3} fill="#020617" stroke="#0ea5e9" strokeWidth={1} />
+              <text x={COND.x + COND.w/2} y={COND.y + COND.h/2 + 4} textAnchor="middle" fontSize={10} fontFamily="'Share Tech Mono'" fill="#38bdf8" fontWeight="bold">ACTIVE</text>
+            </g>
+          )}
+          
+          <text x={COND.x + COND.w/2} y={COND.y - 15} textAnchor="middle" fontSize={16} fontFamily="'Exo 2'" fill={running ? '#38bdf8' : '#bae6fd'} fontWeight="bold">Condenser</text>
         </g>
 
         {/* PUMPS */}
@@ -317,62 +432,121 @@ export default function PlantDiagram() {
           <line x1={CPUMP.x + 15} y1={CPUMP.y - 15} x2={CPUMP.x + 15} y2={CPUMP.y + 15} stroke="#020617" strokeWidth={2} />
           <line x1={CPUMP.x + 25} y1={CPUMP.y - 15} x2={CPUMP.x + 25} y2={CPUMP.y + 15} stroke="#020617" strokeWidth={2} />
           <line x1={CPUMP.x + 35} y1={CPUMP.y - 15} x2={CPUMP.x + 35} y2={CPUMP.y + 15} stroke="#020617" strokeWidth={2} />
-          <circle cx={CPUMP.x} cy={CPUMP.y} r={CPUMP.r} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
+          <circle cx={CPUMP.x} cy={CPUMP.y} r={CPUMP.r} fill="url(#v-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={3} />
+          {/* Spinning impeller indicator */}
+          {running && (
+            <g style={{ transformOrigin: `${CPUMP.x}px ${CPUMP.y}px`, animation: 'pumpSpin 1s linear infinite' }}>
+              {[0, 90, 180, 270].map(a => (
+                <line key={a} x1={CPUMP.x} y1={CPUMP.y} x2={CPUMP.x + CPUMP.r*0.7 * Math.cos(a * Math.PI/180)} y2={CPUMP.y + CPUMP.r*0.7 * Math.sin(a * Math.PI/180)} stroke="#38bdf8" strokeWidth={2} strokeLinecap="round" />
+              ))}
+            </g>
+          )}
           <circle cx={CPUMP.x} cy={CPUMP.y} r={CPUMP.r*0.4} fill="#020617" />
+          {running && <circle cx={CPUMP.x} cy={CPUMP.y} r={CPUMP.r*0.25} fill="#0ea5e9" opacity={0.6} style={{ animation: 'glowPulse 1.5s ease-in-out infinite' }} />}
           <path d={`M ${CPUMP.x} ${CPUMP.y - CPUMP.r} L ${CPUMP.x} ${CPUMP.y - CPUMP.r - 15} L ${CPUMP.x + 15} ${CPUMP.y - CPUMP.r - 15} L ${CPUMP.x + 15} ${CPUMP.y - CPUMP.r} Z`} fill="url(#h-cylinder)" stroke="#020617" strokeWidth={2} />
-          <text x={CPUMP.x + 20} y={CPUMP.y + CPUMP.r + 20} textAnchor="middle" fontSize={12} fontFamily="'Exo 2'" fill="#94a3b8" fontWeight="bold">Condensate Pump</text>
+          <text x={CPUMP.x + 20} y={CPUMP.y + CPUMP.r + 20} textAnchor="middle" fontSize={12} fontFamily="'Exo 2'" fill={running ? '#38bdf8' : '#94a3b8'} fontWeight="bold">Condensate Pump</text>
           
           {/* Feedwater Pump */}
           <rect x={FPUMP.x + 15} y={FPUMP.y - 20} width={60} height={40} rx={6} fill="url(#h-cylinder)" stroke="#020617" strokeWidth={3} />
           <line x1={FPUMP.x + 25} y1={FPUMP.y - 20} x2={FPUMP.x + 25} y2={FPUMP.y + 20} stroke="#020617" strokeWidth={3} />
           <line x1={FPUMP.x + 40} y1={FPUMP.y - 20} x2={FPUMP.x + 40} y2={FPUMP.y + 20} stroke="#020617" strokeWidth={3} />
           <line x1={FPUMP.x + 55} y1={FPUMP.y - 20} x2={FPUMP.x + 55} y2={FPUMP.y + 20} stroke="#020617" strokeWidth={3} />
-          <circle cx={FPUMP.x} cy={FPUMP.y} r={FPUMP.r} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={4} />
+          <circle cx={FPUMP.x} cy={FPUMP.y} r={FPUMP.r} fill="url(#v-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={4} />
+          {/* Spinning impeller indicator */}
+          {running && (
+            <g style={{ transformOrigin: `${FPUMP.x}px ${FPUMP.y}px`, animation: 'pumpSpin 0.8s linear infinite' }}>
+              {[0, 60, 120, 180, 240, 300].map(a => (
+                <line key={a} x1={FPUMP.x} y1={FPUMP.y} x2={FPUMP.x + FPUMP.r*0.7 * Math.cos(a * Math.PI/180)} y2={FPUMP.y + FPUMP.r*0.7 * Math.sin(a * Math.PI/180)} stroke="#38bdf8" strokeWidth={3} strokeLinecap="round" />
+              ))}
+            </g>
+          )}
           <circle cx={FPUMP.x} cy={FPUMP.y} r={FPUMP.r*0.4} fill="#020617" />
+          {running && <circle cx={FPUMP.x} cy={FPUMP.y} r={FPUMP.r*0.3} fill="#0ea5e9" opacity={0.6} style={{ animation: 'glowPulse 1.5s ease-in-out infinite' }} />}
           <path d={`M ${FPUMP.x} ${FPUMP.y - FPUMP.r} L ${FPUMP.x} ${FPUMP.y - FPUMP.r - 20} L ${FPUMP.x + 20} ${FPUMP.y - FPUMP.r - 20} L ${FPUMP.x + 20} ${FPUMP.y - FPUMP.r} Z`} fill="url(#h-cylinder)" stroke="#020617" strokeWidth={3} />
-          <text x={FPUMP.x + 30} y={FPUMP.y + FPUMP.r + 25} textAnchor="middle" fontSize={14} fontFamily="'Exo 2'" fill="#94a3b8" fontWeight="bold">Feedwater Pump</text>
+          <text x={FPUMP.x + 30} y={FPUMP.y + FPUMP.r + 25} textAnchor="middle" fontSize={14} fontFamily="'Exo 2'" fill={running ? '#38bdf8' : '#94a3b8'} fontWeight="bold">Feedwater Pump</text>
           
           {/* FPT */}
           <path d={`M ${FPT.x},${FPT.y+FPT.h*0.2} L ${FPT.x+FPT.w},${FPT.y} L ${FPT.x+FPT.w},${FPT.y+FPT.h} L ${FPT.x},${FPT.y+FPT.h*0.8} Z`} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
           <text x={FPT.x + FPT.w/2} y={FPT.y - 15} textAnchor="middle" fontSize={14} fontFamily="'Exo 2'" fill="#bae6fd" fontWeight="bold">FPT</text>
-          <line x1={FPT.x + FPT.w/2} y1={FPT.y + FPT.h/2} x2={FPUMP.x} y2={FPUMP.y} stroke="#94a3b8" strokeWidth={6} strokeDasharray="10 5" />
+          <line x1={FPT.x + FPT.w/2} y1={FPT.y + FPT.h/2} x2={FPUMP.x} y2={FPUMP.y} stroke="#94a3b8" strokeWidth={6} strokeDasharray={running ? '0' : '10 5'} />
         </g>
 
         {/* HEATERS */}
         <g filter="url(#drop-shadow)">
           {[ {h: HTR1, l: 'Htr 1'}, {h: HTR2, l: 'Htr 2'}, {h: HTR3, l: 'Htr 3'}, {h: HTR4, l: 'Htr 4'} ].map((htr, i) => (
             <g key={i}>
-              <rect x={htr.h.x} y={htr.h.y} width={htr.h.w} height={htr.h.h} rx={htr.h.w/2} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
+              {/* Active glow border */}
+              {running && <rect x={htr.h.x-2} y={htr.h.y-2} width={htr.h.w+4} height={htr.h.h+4} rx={htr.h.w/2+2} fill="none" stroke="#0ea5e9" strokeWidth={1.5} filter="url(#active-glow)" style={{ animation: 'condenserPulse 3s ease-in-out infinite', animationDelay: `${i*0.5}s` }} />}
+              <rect x={htr.h.x} y={htr.h.y} width={htr.h.w} height={htr.h.h} rx={htr.h.w/2} fill="url(#v-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={3} />
               <rect x={htr.h.x-4} y={htr.h.y + htr.h.h*0.2} width={htr.h.w+8} height={6} rx={2} fill="#334155" stroke="#020617" strokeWidth={2} />
               <rect x={htr.h.x-4} y={htr.h.y + htr.h.h*0.8} width={htr.h.w+8} height={6} rx={2} fill="#334155" stroke="#020617" strokeWidth={2} />
               <rect x={htr.h.x+8} y={htr.h.y+htr.h.h*0.4} width={htr.h.w-16} height={htr.h.h*0.5} rx={htr.h.w/4} fill="#020617" />
               <rect x={htr.h.x+8} y={htr.h.y+htr.h.h*0.6} width={htr.h.w-16} height={htr.h.h*0.3} rx={htr.h.w/4} fill="rgba(56, 189, 248, 0.6)" />
-              <text x={htr.h.x + htr.h.w/2} y={htr.h.y + htr.h.h + 20} textAnchor="middle" fontSize={14} fill="#bae6fd" fontWeight="bold">{htr.l}</text>
+              {/* Active indicator dot */}
+              {running && <circle cx={htr.h.x + htr.h.w - 4} cy={htr.h.y + 4} r={3} fill="#10b981"><animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" /></circle>}
+              <text x={htr.h.x + htr.h.w/2} y={htr.h.y + htr.h.h + 20} textAnchor="middle" fontSize={14} fill={running ? '#38bdf8' : '#bae6fd'} fontWeight="bold">{htr.l}</text>
             </g>
           ))}
 
           {[ {h: HTR6, l: 'Htr 6'}, {h: HTR7, l: 'Htr 7'}, {h: HTR8, l: 'Htr 8'} ].map((htr, i) => (
             <g key={i}>
-              <rect x={htr.h.x} y={htr.h.y} width={htr.h.w} height={htr.h.h} rx={htr.h.w/2} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
+              {/* Active glow border */}
+              {running && <rect x={htr.h.x-2} y={htr.h.y-2} width={htr.h.w+4} height={htr.h.h+4} rx={htr.h.w/2+2} fill="none" stroke="#0ea5e9" strokeWidth={1.5} filter="url(#active-glow)" style={{ animation: 'condenserPulse 3s ease-in-out infinite', animationDelay: `${i*0.5}s` }} />}
+              <rect x={htr.h.x} y={htr.h.y} width={htr.h.w} height={htr.h.h} rx={htr.h.w/2} fill="url(#v-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={3} />
               <rect x={htr.h.x-4} y={htr.h.y + htr.h.h*0.2} width={htr.h.w+8} height={6} rx={2} fill="#334155" stroke="#020617" strokeWidth={2} />
               <rect x={htr.h.x-4} y={htr.h.y + htr.h.h*0.8} width={htr.h.w+8} height={6} rx={2} fill="#334155" stroke="#020617" strokeWidth={2} />
               <rect x={htr.h.x+8} y={htr.h.y+htr.h.h*0.4} width={htr.h.w-16} height={htr.h.h*0.5} rx={htr.h.w/4} fill="#020617" />
               <rect x={htr.h.x+8} y={htr.h.y+htr.h.h*0.6} width={htr.h.w-16} height={htr.h.h*0.3} rx={htr.h.w/4} fill="rgba(56, 189, 248, 0.6)" />
-              <text x={htr.h.x + htr.h.w/2} y={htr.h.y + htr.h.h + 20} textAnchor="middle" fontSize={14} fill="#bae6fd" fontWeight="bold">{htr.l}</text>
+              {/* Active indicator dot */}
+              {running && <circle cx={htr.h.x + htr.h.w - 4} cy={htr.h.y + 4} r={3} fill="#10b981"><animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" /></circle>}
+              <text x={htr.h.x + htr.h.w/2} y={htr.h.y + htr.h.h + 20} textAnchor="middle" fontSize={14} fill={running ? '#38bdf8' : '#bae6fd'} fontWeight="bold">{htr.l}</text>
             </g>
           ))}
           
           {/* Deaerator */}
-          <rect x={DEAERATOR.x} y={DEAERATOR.y} width={DEAERATOR.w} height={DEAERATOR.h} rx={DEAERATOR.h/2} fill="url(#h-cylinder)" stroke="#020617" strokeWidth={4} />
-          <rect x={DEAERATOR.x + 20} y={DEAERATOR.y - 30} width={DEAERATOR.w - 40} height={40} rx={10} fill="url(#v-cylinder)" stroke="#020617" strokeWidth={3} />
+          {/* Active glow rim when running */}
+          {running && <rect x={DEAERATOR.x - 3} y={DEAERATOR.y - 3} width={DEAERATOR.w + 6} height={DEAERATOR.h + 6} rx={DEAERATOR.h/2 + 3} fill="none" stroke="#38bdf8" strokeWidth={2} filter="url(#active-glow)" style={{ animation: 'condenserPulse 2.5s ease-in-out infinite' }} />}
+          
+          <rect x={DEAERATOR.x} y={DEAERATOR.y} width={DEAERATOR.w} height={DEAERATOR.h} rx={DEAERATOR.h/2} fill="url(#h-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={4} />
+          <rect x={DEAERATOR.x + 20} y={DEAERATOR.y - 30} width={DEAERATOR.w - 40} height={40} rx={10} fill="url(#v-cylinder)" stroke={running ? '#0ea5e9' : '#020617'} strokeWidth={3} />
+          
+          {/* Spray nozzle steam jets when running */}
+          {running && (
+            <g>
+              {[0,1,2,3,4].map(i => (
+                <line key={`spray-${i}`} x1={DEAERATOR.x + 40 + i*25} y1={DEAERATOR.y - 10} x2={DEAERATOR.x + 40 + i*25} y2={DEAERATOR.y + 15} stroke="#bae6fd" strokeWidth={2} strokeLinecap="round" strokeDasharray="3 3" style={{ animation: `deaeratorSpray ${0.5 + i*0.1}s ease-in infinite ${i*0.15}s` }} />
+              ))}
+            </g>
+          )}
+          
           {/* Internal level */}
           <rect x={DEAERATOR.x + 30} y={DEAERATOR.y + 20} width={DEAERATOR.w - 60} height={DEAERATOR.h - 40} rx={20} fill="#020617" />
           <rect x={DEAERATOR.x + 30} y={DEAERATOR.y + 50} width={DEAERATOR.w - 60} height={DEAERATOR.h - 70} rx={15} fill="rgba(56, 189, 248, 0.6)" />
-          {/* Water mist / bubbles animation in De-aerator */}
-          <circle cx={DEAERATOR.x + 60} cy={DEAERATOR.y + 40} r={4} fill="#bae6fd" opacity={0.6} />
-          <circle cx={DEAERATOR.x + 100} cy={DEAERATOR.y + 30} r={3} fill="#bae6fd" opacity={0.4} />
-          <circle cx={DEAERATOR.x + 140} cy={DEAERATOR.y + 45} r={5} fill="#bae6fd" opacity={0.7} />
-          <text x={DEAERATOR.x + DEAERATOR.w/2} y={DEAERATOR.y + 15} textAnchor="middle" fontSize={14} fill="#7db8d4" fontWeight="bold">De-aerator</text>
+          
+          {/* Water surface wave in deaerator */}
+          {running && (
+            <path d={`M ${DEAERATOR.x + 30} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 70} ${DEAERATOR.y + 46} ${DEAERATOR.x + 90} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 110} ${DEAERATOR.y + 54} ${DEAERATOR.x + DEAERATOR.w - 30} ${DEAERATOR.y + 50}`} fill="none" stroke="#7dd3fc" strokeWidth={1.5} opacity={0.8}>
+              <animate attributeName="d" values={`M ${DEAERATOR.x + 30} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 70} ${DEAERATOR.y + 46} ${DEAERATOR.x + 90} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 110} ${DEAERATOR.y + 54} ${DEAERATOR.x + DEAERATOR.w - 30} ${DEAERATOR.y + 50};M ${DEAERATOR.x + 30} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 70} ${DEAERATOR.y + 54} ${DEAERATOR.x + 90} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 110} ${DEAERATOR.y + 46} ${DEAERATOR.x + DEAERATOR.w - 30} ${DEAERATOR.y + 50};M ${DEAERATOR.x + 30} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 70} ${DEAERATOR.y + 46} ${DEAERATOR.x + 90} ${DEAERATOR.y + 50} Q ${DEAERATOR.x + 110} ${DEAERATOR.y + 54} ${DEAERATOR.x + DEAERATOR.w - 30} ${DEAERATOR.y + 50}`} dur="2.5s" repeatCount="indefinite" />
+            </path>
+          )}
+          
+          {/* Water mist / bubbles animation in De-aerator - more bubbles, more visible */}
+          <g style={{ display: running ? 'block' : 'none' }}>
+            {[1,2,3,4,5,6,7,8].map(i => (
+               <circle key={`bub-${i}`} cx={DEAERATOR.x + 25 + i*16} cy={DEAERATOR.y + 65} r={2 + (i%4)} fill="#bae6fd" style={{ animation: `bubbleRise ${0.7 + (i%3)*0.3}s infinite ease-in ${(i%5)*0.15}s`, opacity: 0 }} />
+            ))}
+          </g>
+          
+          {/* Steam vent from top of deaerator dome */}
+          {running && (
+            <g>
+              {[0,1,2].map(i => (
+                <ellipse key={`dv-${i}`} cx={DEAERATOR.x + 60 + i*30} cy={DEAERATOR.y - 32} rx={6 + i*2} ry={4} fill="#bae6fd" filter="url(#steam-blur)" style={{ animation: `steamWisp ${1 + i*0.4}s ease-in-out infinite ${i*0.3}s`, opacity: 0 }} />
+              ))}
+            </g>
+          )}
+          
+          <text x={DEAERATOR.x + DEAERATOR.w/2} y={DEAERATOR.y + 15} textAnchor="middle" fontSize={14} fill={running ? '#38bdf8' : '#7db8d4'} fontWeight="bold">De-aerator</text>
         </g>
 
         {/* --- TEXT LABELS (Thermodynamic States) --- */}
